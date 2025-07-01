@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState } from "react"
@@ -14,7 +15,7 @@ interface Device {
   room: string
   status: "on" | "off"
   mode: "auto" | "manual"
-  fanSpeed: number
+  fanSpeed: string
   filterLife: number
   aqi: number
 }
@@ -24,7 +25,11 @@ export default function Dashboard() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
   const isOn = selectedDevice ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on" : false;
-  const devices = deviceData
+  const devices: Device[] = deviceData.map((device: any) => ({
+    ...device,
+    status: device.status as "on" | "off",
+    mode: device.mode as "auto" | "manual",
+  }))
 
 
   const currentTime = new Date().toLocaleString("en-US", {

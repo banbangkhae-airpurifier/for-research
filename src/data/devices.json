@@ -4,53 +4,59 @@
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 100,
-    "aqi": 50, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 50,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   },
   {
     "id": "2",
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 90,
-    "aqi": 100, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 100,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   },
   {
     "id": "3",
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 80,
-    "aqi": 150, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 150,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   },
   {
     "id": "4",
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 70,
-    "aqi": 200, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 200,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   },
   {
     "id": "5",
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 60,
-    "aqi": 250, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 250,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   },
   {
     "id": "6",
     "name": "coreTest",
     "room": "COSCI office",
     "filterLife": 50,
-    "aqi": 300, 
-    "mode" : "auto",
-    "fanSpeed" : "high"
+    "aqi": 300,
+    "mode": "auto",
+    "fanSpeed": "off",
+    "status": "off"
   }
 ]

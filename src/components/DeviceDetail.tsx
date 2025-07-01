@@ -10,7 +10,7 @@ interface Device {
     id: string
     name: string
     room: string
-    status: "on" | "off"
+    status?: "on" | "off"
     mode: "auto" | "manual"
     fanSpeed: string
     filterLife: number

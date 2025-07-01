@@ -12,16 +12,22 @@ interface Device {
   room: string
   status: "on" | "off"
   mode: "auto" | "manual"
-  fanSpeed: number
+  fanSpeed: string
   filterLife: number
   aqi: number
 }
+
+interface AQIData {
+  pm_25: number
+  aqi: number
+}
+
 type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 
 export default function Dashboard() {
-  const aqi = aqiData
-  const devices: Device[] = deviceData
-  
+  const aqi: AQIData = aqiData
+  const [devices, setDevices] = useState<Device[]>(deviceData as unknown as Device[])
+
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [controlPanelOpen, setControlPanelOpen] = useState(false)
   const [selectedMode, setSelectedMode] = useState<Device["mode"]>("manual")
@@ -45,12 +51,34 @@ export default function Dashboard() {
         ...prev,
         [selectedDevice.id]: !isOn,
       }))
+      setDevices((prevDevices) =>
+        prevDevices.map((d) =>
+          d.id === selectedDevice.id
+            ? { ...d, status: isOn ? "off" : "on" }
+            : d
+        )
+      )
+      // อัปเดต selectedDevice ด้วย
+      setSelectedDevice((prev) =>
+        prev ? { ...prev, status: isOn ? "off" : "on" } : null
+      )
     }
   }
 
   const handleSetFanLevel = (level: FanLevel) => {
     setSelectedFanLevel(level)
-    // TODO: call API or update state to apply fan level to device
+    if (selectedDevice) {
+      setDevices((prevDevices) =>
+        prevDevices.map((d) =>
+          d.id === selectedDevice.id
+            ? { ...d, fanSpeed: level }
+            : d
+        )
+      )
+      setSelectedDevice((prev) =>
+        prev ? { ...prev, fanSpeed: level } : null
+      )
+    }
   }
 
   const getPM25GradientClassHex = (aqi: number): string => {
@@ -64,6 +92,7 @@ export default function Dashboard() {
   const handleCloseDeviceDetail = () => {
     setSelectedDevice(null)
   }
+  
 
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(aqi.aqi)}`}>
@@ -72,73 +101,73 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold mb-2">Devices</h1>
         </div>
 
-    <div>
-      <div className="w-full">
-        <div className="mb-6 bg-white rounded-xl overflow-hidden shadow-lg">
-          <button
-            className="w-full flex justify-between items-center px-6 py-8 text-left text-xl font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
-            onClick={() => setControlPanelOpen(!controlPanelOpen)}
-          >
-            <span>Control Panel</span>
-            <div className={`transform transition-transform duration-200 ${controlPanelOpen ? 'rotate-180' : ''}`}>
-              <ChevronDown />
-            </div>
-          </button>
-          
-          {/* Animated Panel Body */}
-          <div 
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              controlPanelOpen 
-                ? 'max-h-96 opacity-100' 
-                : 'max-h-0 opacity-0'
-            }`}
-          >
-            <div className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${
-              controlPanelOpen 
-                ? 'translate-y-0' 
-                : '-translate-y-4'
-            }`}>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">MODE</h3>
-                <div className="flex gap-2">
-                  {(["auto", "manual"] as Device["mode"][]).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setSelectedMode(mode)}
-                      className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
-                        ${selectedMode === mode
-                          ? "bg-blue-500 text-white shadow-md"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                    >
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </button>
-                  ))}
+        <div>
+          <div className="w-full">
+            <div className="mb-6 bg-white rounded-xl overflow-hidden shadow-lg">
+              <button
+                className="w-full flex justify-between items-center px-6 py-8 text-left text-xl font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
+                onClick={() => setControlPanelOpen(!controlPanelOpen)}
+              >
+                <span>Control Panel</span>
+                <div className={`transform transition-transform duration-200 ${controlPanelOpen ? 'rotate-180' : ''}`}>
+                  <ChevronDown />
                 </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => handleSetFanLevel(level)}
-                      className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform ${
-                        selectedFanLevel === level 
-                          ? 'bg-blue-500 text-white shadow-md' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {level.toUpperCase()}
-                    </button>
-                  ))}
+              </button>
+
+              {/* Animated Panel Body */}
+              <div
+                className={`transition-all duration-300 ease-in-out overflow-hidden ${controlPanelOpen
+                  ? 'max-h-96 opacity-100'
+                  : 'max-h-0 opacity-0'
+                  }`}
+              >
+                <div className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${controlPanelOpen
+                  ? 'translate-y-0'
+                  : '-translate-y-4'
+                  }`}>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">MODE</h3>
+                    <div className="flex gap-2">
+                      {(["auto", "manual"] as Device["mode"][]).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setSelectedMode(mode)}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+                            ${selectedMode === mode
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                        >
+                          {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => handleSetFanLevel(level)}
+                          disabled={selectedMode === "auto"}
+                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+      ${selectedFanLevel === level
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+      ${selectedMode === "auto" ? "opacity-50 cursor-not-allowed" : ""}
+    `}
+                        >
+                          {level.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
         <div className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
           <h2 className="text-2xl font-bold text-white mb-6">Devices</h2>
@@ -176,7 +205,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Fan className="w-4 h-4" />
-                    <span>Fan: {device.fanSpeed}%</span>
+                    <span>Fan: {device.fanSpeed}</span>
                   </div>
                 </div>
               </div>
