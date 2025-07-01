@@ -1,103 +1,140 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Wind } from "lucide-react"
+import deviceData from "@/data/devices.json"
+import aqiData from "@/data/aqi.json"
+import DeviceDetail from "@/components/DeviceDetail"
+
+interface Device {
+  id: string
+  name: string
+  room: string
+  status: "on" | "off"
+  mode: "auto" | "manual"
+  fanSpeed: number
+  filterLife: number
+  aqi: number
+}
+
+export default function Dashboard() {
+  const aqi = aqiData
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
+  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
+  const isOn = selectedDevice ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on" : false;
+  const devices = deviceData
+
+
+  const currentTime = new Date().toLocaleString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })
+
+  const getPM25GradientClassHex = (aqi: number): string => {
+    if (aqi < 51) {
+      // สีเขียว
+      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]";
+    } else if (aqi < 101) {
+      // สีเหลือง
+      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]";
+    } else if (aqi < 151) {
+      // สีส้ม
+      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]";
+    } else if (aqi < 201) {
+      // สีแดง/ชมพู
+      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]";
+    } else {
+      // สีม่วง
+      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]";
+    }
+  };
+
+  const getAQIBadgeColor = (aqi: number) => {
+    if (aqi <= 50) return "bg-green-100 text-green-800"
+    if (aqi <= 100) return "bg-yellow-100 text-yellow-800"
+    if (aqi <= 150) return "bg-orange-100 text-orange-800"
+    if (aqi <= 200) return "bg-red-100 text-red-800"
+    return "bg-purple-100 text-purple-700"
+  }
+
+  const handleTogglePower = () => {
+    if (selectedDevice) {
+      setDevicePower((prev) => ({
+        ...prev,
+        [selectedDevice.id]: !isOn,
+      }));
+    }
+  };
+
+  const getPM25GaugeColor = (aqi: number) => {
+    const gradient = getPM25GradientClassHex(aqi);
+    // ดึงสี hex ตัวแรกจาก from-[#xxxxxx]
+    const match = gradient.match(/from-\[#([0-9A-Fa-f]{6})\]/);
+    return match ? `#${match[1]}` : "#34d399";
+  };
+
+  const handleCloseDeviceDetail = () => {
+    setSelectedDevice(null)
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(aqi.aqi)}`}>
+      {/* Main Content */}
+      <div className="px-4 pb-20">
+        {/* Header */}
+        <div className="text-white mb-8">
+          <h1 className="text-4xl font-bold mb-2">COSCI Space</h1>
+          <p className="text-xl opacity-90 mb-4">Bangkok, Petchburi</p>
+          <p className="text-lg opacity-80">{currentTime}</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* AQI Display */}
+        <div className="text-center text-white mb-8">
+          <p className="text-lg mb-4">PM2.5</p>
+          <div className="text-8xl font-bold mb-2">{aqi.pm_25}</div>
+          <p className="text-lg mb-4">μg/m³</p>
+          <Badge className={`${getAQIBadgeColor(aqi.aqi)} text-lg px-4 py-2`}>AQI {aqi.aqi}</Badge>
+        </div>
+
+        {/* Devices Section */}
+        <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
+          <h2 className="text-2xl font-bold text-white mb-6">Devices</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {devices.map((device) => (
+              <Card
+                key={device.id}
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => setSelectedDevice(device)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <Wind className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{device.name}</h3>
+                      <p className="text-gray-600">{device.room}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+      <DeviceDetail
+        device={selectedDevice}
+        isOpen={!!selectedDevice}
+        onClose={handleCloseDeviceDetail}
+        devicePower={devicePower}
+        onTogglePower={handleTogglePower}
+      />
     </div>
-  );
+  )
 }
