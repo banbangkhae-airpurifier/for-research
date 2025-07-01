@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Fan, Power, Settings, Droplets, Wind, ChevronDown, ChevronUp } from "lucide-react"
+import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react"
 import deviceData from "@/data/devices.json"
 import DeviceDetail from "@/components/DeviceDetail"
 import aqiData from "@/data/aqi.json"
@@ -21,7 +21,7 @@ type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 export default function Dashboard() {
   const aqi = aqiData
   const devices: Device[] = deviceData
-
+  
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [controlPanelOpen, setControlPanelOpen] = useState(false)
   const [selectedMode, setSelectedMode] = useState<Device["mode"]>("manual")

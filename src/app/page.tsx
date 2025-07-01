@@ -72,13 +72,6 @@ export default function Dashboard() {
     }
   };
 
-  const getPM25GaugeColor = (aqi: number) => {
-    const gradient = getPM25GradientClassHex(aqi);
-    // ดึงสี hex ตัวแรกจาก from-[#xxxxxx]
-    const match = gradient.match(/from-\[#([0-9A-Fa-f]{6})\]/);
-    return match ? `#${match[1]}` : "#34d399";
-  };
-
   const handleCloseDeviceDetail = () => {
     setSelectedDevice(null)
   }
