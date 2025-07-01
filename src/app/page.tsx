@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Wind } from "lucide-react"
 import deviceData from "@/data/devices.json"
 import aqiData from "@/data/aqi.json"
 import DeviceDetail from "@/components/DeviceDetail"
+import moment from "moment"
 
 interface Device {
   id: string
@@ -32,14 +33,14 @@ export default function Dashboard() {
   }))
 
 
-  const currentTime = new Date().toLocaleString("en-US", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })
+const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"))
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(moment().format("ddd D MMM HH:mm:ss"))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getPM25GradientClassHex = (aqi: number): string => {
     if (aqi < 51) {
