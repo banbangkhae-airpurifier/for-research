@@ -1,14 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client"
 
 import { useEffect, useState } from "react"
+
 import { Card, CardContent } from "@/components/ui/card"
+
 import { Badge } from "@/components/ui/badge"
+
 import { Wind } from "lucide-react"
+
 import deviceData from "@/data/devices.json"
+
 import aqiData from "@/data/aqi.json"
+
 import DeviceDetail from "@/components/DeviceDetail"
+
 import moment from "moment"
+import { StatusIndicator } from "@/components/StatusIndicator"
 
 interface Device {
   id: string
@@ -24,16 +33,16 @@ interface Device {
 export default function Dashboard() {
   const aqi = aqiData
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
-  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
-  const isOn = selectedDevice ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on" : false;
+  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
+  const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
+
   const devices: Device[] = deviceData.map((device: any) => ({
     ...device,
     status: device.status as "on" | "off",
     mode: device.mode as "auto" | "manual",
   }))
 
-
-const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"))
+  const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"))
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -45,21 +54,21 @@ const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:
   const getPM25GradientClassHex = (aqi: number): string => {
     if (aqi < 51) {
       // สีเขียว
-      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]";
+      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
     } else if (aqi < 101) {
       // สีเหลือง
-      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]";
+      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
     } else if (aqi < 151) {
       // สีส้ม
-      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]";
+      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]"
     } else if (aqi < 201) {
       // สีแดง/ชมพู
-      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]";
+      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]"
     } else {
       // สีม่วง
-      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]";
+      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]"
     }
-  };
+  }
 
   const getAQIBadgeColor = (aqi: number) => {
     if (aqi <= 50) return "bg-green-100 text-green-800"
@@ -74,13 +83,14 @@ const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:
       setDevicePower((prev) => ({
         ...prev,
         [selectedDevice.id]: !isOn,
-      }));
+      }))
     }
-  };
+  }
 
   const handleCloseDeviceDetail = () => {
     setSelectedDevice(null)
   }
+
 
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(aqi.aqi)}`}>
@@ -104,7 +114,7 @@ const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:
         {/* Devices Section */}
         <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <h2 className="text-2xl font-bold text-white mb-6">Devices</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
             {devices.map((device) => (
               <Card
                 key={device.id}
@@ -112,13 +122,16 @@ const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:
                 onClick={() => setSelectedDevice(device)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <Wind className="w-6 h-6 text-gray-600" />
+                  <div className="flex flex-col text-center items-center gap-3 mb-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <Wind className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{device.name}</h3>
-                      <p className="text-gray-600">{device.room}</p>
+                      <h3 className="font-semibold text-sm sm:text-base">{device.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm">{device.room}</p>
+                    </div>
+                    <div>
+                          <StatusIndicator isOn={device.status === "on" ? true : false}/>
                     </div>
                   </div>
                 </CardContent>
@@ -127,6 +140,7 @@ const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:
           </div>
         </div>
       </div>
+
       <DeviceDetail
         device={selectedDevice}
         isOpen={!!selectedDevice}

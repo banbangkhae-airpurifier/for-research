@@ -239,31 +239,27 @@ export default function Dashboard() {
                   </div>
 
                   {/* Global Fan Level Control */}
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL (ALL DEVICES)</h3>
-                    <div className="flex gap-2 flex-wrap">
-                      {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
-                        <button
-                          key={level}
-                          onClick={() => handleGlobalFanLevel(level)}
-                          disabled={globalMode === "auto"}
-                          className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
-                            ${
-                              globalFanLevel === level
-                                ? "bg-blue-500 text-white shadow-md"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }
-                            ${globalMode === "auto" ? "opacity-50 cursor-not-allowed" : ""}
-                          `}
-                        >
-                          {level.toUpperCase()}
-                        </button>
-                      ))}
+                  {globalMode === "auto" && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL (ALL DEVICES)</h3>
+                      <div className="flex gap-2">
+                        {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
+                          <button
+                            key={level}
+                            onClick={() => handleGlobalFanLevel(level)}
+                            className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+                              ${
+                                globalFanLevel === level
+                                  ? "bg-green-500 text-white shadow-md"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                          >
+                            {level.charAt(0).toUpperCase() + level.slice(1)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    {globalMode === "auto" && (
-                      <p className="text-xs text-gray-500 mt-2">Fan level is automatically controlled in auto mode</p>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
