@@ -5,17 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Power } from "lucide-react"
-
-interface Device {
-  id: string
-  name: string
-  room: string
-  status?: "on" | "off"
-  mode: "auto" | "manual"
-  fanSpeed: string
-  filterLife: number
-  aqi: number
-}
+import { Device } from "@/lib/device"
 
 interface DeviceDetailProps {
   device: Device | null
@@ -28,7 +18,7 @@ interface DeviceDetailProps {
 export default function DeviceDetail({ device, isOpen, onClose, devicePower, onTogglePower }: DeviceDetailProps) {
   if (!device) return null
 
-  const isOn = devicePower[device.id] ?? device.status === "on"
+  const isOn = devicePower[device.entityId] ?? device.status === "on"
 
   const getPM25GaugeColor = (aqi: number) => {
     if (aqi < 51) return "#4ADE80"
@@ -55,11 +45,11 @@ export default function DeviceDetail({ device, isOpen, onClose, devicePower, onT
             <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">{device.name}</h2>
-                  <p className="text-sm sm:text-base text-gray-600">{device.room}</p>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">{device.model}</h2>
+                  <p className="text-sm sm:text-base text-gray-600">{device.location}</p>
                 </div>
                 <button
-                  onClick={() => onTogglePower(device.id)}
+                  onClick={() => onTogglePower(device.entityId)}
                   className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 border-2 rounded-full flex items-center justify-center transition-colors ${
                     isOn ? "border-green-500 bg-green-100" : "border-red-500 bg-white"
                   }`}
@@ -91,10 +81,10 @@ export default function DeviceDetail({ device, isOpen, onClose, devicePower, onT
                       cy="64"
                       r="56"
                       fill="none"
-                      stroke={getPM25GaugeColor(device.aqi)}
+                      stroke={getPM25GaugeColor(device.aqiValue)}
                       strokeWidth="16"
                       strokeDasharray={2 * Math.PI * 56}
-                      strokeDashoffset={(1 - Math.max(0, Math.min(1, device.aqi / 300))) * 2 * Math.PI * 56}
+                      strokeDashoffset={(1 - Math.max(0, Math.min(1, device.aqiValue / 300))) * 2 * Math.PI * 56}
                       style={{ transition: "stroke-dashoffset 0.5s" }}
                       strokeLinecap="round"
                       transform="rotate(-90 64 64)"
@@ -103,14 +93,14 @@ export default function DeviceDetail({ device, isOpen, onClose, devicePower, onT
 
                   {/* AQI Value */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">{device.aqi}</span>
+                    <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">{device.aqiValue}</span>
                     <span className="text-xs sm:text-sm text-gray-500">AQI</span>
                   </div>
                 </div>
               </div>
 
               <div className="text-center">
-                <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600">AQI: {device.aqi}</span>
+                <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600">AQI: {device.aqiValue}</span>
               </div>
             </CardContent>
           </Card>
@@ -136,7 +126,7 @@ export default function DeviceDetail({ device, isOpen, onClose, devicePower, onT
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center">
                   <span className="text-sm sm:text-base text-gray-600">FAN SPEED: </span>
-                  <span className="text-sm sm:text-base font-semibold uppercase">{device.fanSpeed}</span>
+                  <span className="text-sm sm:text-base font-semibold uppercase">{device.percentage}</span>
                 </div>
               </div>
             </CardContent>

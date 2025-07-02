@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 
 import { Wind } from "lucide-react"
 
-import deviceData from "@/data/devices.json"
+import { Device, devicesData } from "@/lib/device"
 
 import aqiData from "@/data/aqi.json"
 
@@ -19,28 +19,14 @@ import DeviceDetail from "@/components/DeviceDetail"
 import moment from "moment"
 import { StatusIndicator } from "@/components/StatusIndicator"
 
-interface Device {
-  id: string
-  name: string
-  room: string
-  status: "on" | "off"
-  mode: "auto" | "manual"
-  fanSpeed: string
-  filterLife: number
-  aqi: number
-}
-
 export default function Dashboard() {
   const aqi = aqiData
+  const [devices, setDevices] = useState<Device[]>(devicesData);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
   const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
 
-  const devices: Device[] = deviceData.map((device: any) => ({
-    ...device,
-    status: device.status as "on" | "off",
-    mode: device.mode as "auto" | "manual",
-  }))
+
 
   const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"))
 
@@ -84,6 +70,11 @@ export default function Dashboard() {
         ...prev,
         [selectedDevice.id]: !isOn,
       }))
+      setDevices((prevDevices) =>
+        prevDevices.map((d) => (d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d)),
+      )
+      setSelectedDevice((prev) => (prev ? { ...prev, status: isOn ? "off" : "on" } : null))
+      console.log(`Toggled power for device ${console.log(JSON.stringify(devices, null, 2))} to ${isOn ? "off" : "on"}`)
     }
   }
 
@@ -114,21 +105,21 @@ export default function Dashboard() {
         {/* Devices Section */}
         <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <h2 className="text-2xl font-bold text-white mb-6">Devices</h2>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             {devices.map((device) => (
               <Card
                 key={device.id}
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => setSelectedDevice(device)}
               >
-                <CardContent className="p-4">
-                  <div className="flex flex-col text-center items-center gap-3 mb-3">
+                <CardContent className="p-3">
+                  <div className="flex flex-col text-center items-center gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                       <Wind className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm sm:text-base">{device.name}</h3>
-                      <p className="text-gray-600 text-xs sm:text-sm">{device.room}</p>
+                      <h3 className="font-semibold text-sm sm:text-base">{device.model}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm">{device.location}</p>
                     </div>
                     <div>
                           <StatusIndicator isOn={device.status === "on" ? true : false}/>

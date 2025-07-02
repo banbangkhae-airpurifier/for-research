@@ -4,20 +4,10 @@ import { useState, useEffect } from "react"
 
 import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react"
 
-import deviceData from "@/data/devices.json"
+import { Device, devicesData } from "@/lib/device"
+
 import aqiData from "@/data/aqi.json"
 import DeviceDetail from "@/components/DeviceDetail"
-
-interface Device {
-  id: string
-  name: string
-  room: string
-  status: "on" | "off"
-  mode: "auto" | "manual"
-  fanSpeed: string
-  filterLife: number
-  aqi: number
-}
 
 interface AQIData {
   pm_25: number
@@ -29,18 +19,28 @@ type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 export default function Dashboard() {
   const aqi: AQIData = aqiData
 
-  const [devices, setDevices] = useState<Device[]>(deviceData as unknown as Device[])
+  const [devices, setDevices] = useState<Device[]>(devicesData as unknown as Device[])
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [controlPanelOpen, setControlPanelOpen] = useState(false)
-
   // Global control states
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual")
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off")
   const [, setGlobalPower] = useState(false)
-
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
-
   const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
+
+
+  // Save devices data to localStorage
+  function saveDevicesData(devices: Device[]) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('devicesData', JSON.stringify(devices));
+      console.log("Devices data saved to localStorage.");
+    }
+  }
+
+  useEffect(() => {
+    saveDevicesData(devices); // Pass the latest devices to your save function
+  }, [devices]);
 
   useEffect(() => {
     if (selectedDevice) {
@@ -56,7 +56,7 @@ export default function Dashboard() {
     if (devices.length > 0) {
       const firstDevice = devices[0]
       setGlobalMode(firstDevice.mode)
-      setGlobalFanLevel(firstDevice.fanSpeed as FanLevel)
+      setGlobalFanLevel(firstDevice.fanLevel as FanLevel)
       setGlobalPower(firstDevice.status === "on")
 
       // Initialize device power states
@@ -239,7 +239,7 @@ export default function Dashboard() {
                   </div>
 
                   {/* Global Fan Level Control */}
-                  {globalMode === "auto" && (
+                  {globalMode === "manual" && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL (ALL DEVICES)</h3>
                       <div className="flex gap-2">
@@ -287,8 +287,8 @@ export default function Dashboard() {
                     <Wind className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"}`} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">{device.name}</h3>
-                    <p className="text-gray-600">{device.room}</p>
+                    <h3 className="font-semibold text-lg">{device.model}</h3>
+                    <p className="text-gray-600">{device.location}</p>
                   </div>
                 </div>
 
@@ -307,7 +307,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Fan className="w-4 h-4" />
-                    <span>Fan: {device.fanSpeed}</span>
+                    <span>Fan: {device.fanLevel}</span>
                   </div>
                 </div>
 
@@ -316,9 +316,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Room AQI:</span>
                     <span
-                      className={`font-semibold ${device.aqi < 51 ? "text-green-600" : device.aqi < 101 ? "text-yellow-600" : "text-red-600"}`}
+                      className={`font-semibold ${device.aqiValue < 51 ? "text-green-600" : device.aqiValue < 101 ? "text-yellow-600" : "text-red-600"}`}
                     >
-                      {device.aqi}
+                      {device.aqiValue}
                     </span>
                   </div>
                 </div>
