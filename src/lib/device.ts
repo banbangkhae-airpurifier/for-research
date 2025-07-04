@@ -58,6 +58,9 @@ export class Device {
       this.fanLevel = "turbo";
     }
   }
+  //refresh device data
+
+  //
 }
 
 export const devicesData: Device[] = [

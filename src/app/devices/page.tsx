@@ -10,14 +10,14 @@ import aqiData from "@/data/aqi.json"
 import DeviceDetail from "@/components/DeviceDetail"
 
 interface AQIData {
-  pm_25: number
+  pm25: number
   aqi: number
 }
 
 type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 
 export default function Dashboard() {
-  const aqi: AQIData = aqiData
+  const aqi = aqiData
 
   const [devices, setDevices] = useState<Device[]>(devicesData as unknown as Device[])
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
@@ -29,18 +29,6 @@ export default function Dashboard() {
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
   const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
 
-
-  // Save devices data to localStorage
-  function saveDevicesData(devices: Device[]) {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('devicesData', JSON.stringify(devices));
-      console.log("Devices data saved to localStorage.");
-    }
-  }
-
-  useEffect(() => {
-    saveDevicesData(devices); // Pass the latest devices to your save function
-  }, [devices]);
 
   useEffect(() => {
     if (selectedDevice) {
@@ -188,7 +176,7 @@ export default function Dashboard() {
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <span className="text-sm">PM2.5: </span>
-              <span className="font-bold">{aqi.pm_25} μg/m³</span>
+              <span className="font-bold">{aqi.pm25} μg/m³</span>
             </div>
           </div>
         </div>

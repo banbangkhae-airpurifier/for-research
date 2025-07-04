@@ -1,105 +1,136 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-"use client"
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Wind } from "lucide-react";
+import { Device, devicesData } from "@/lib/device";
+import DeviceManager from "@/lib/deviceManager";
+import DeviceDetail from "@/components/DeviceDetail";
+import { StatusIndicator } from "@/components/StatusIndicator";
+import moment from "moment";
 
-import { useEffect, useState } from "react"
-
-import { Card, CardContent } from "@/components/ui/card"
-
-import { Badge } from "@/components/ui/badge"
-
-import { Wind } from "lucide-react"
-
-import { Device, devicesData } from "@/lib/device"
-
-import aqiData from "@/data/aqi.json"
-
-import DeviceDetail from "@/components/DeviceDetail"
-
-import moment from "moment"
-import { StatusIndicator } from "@/components/StatusIndicator"
+interface AirQuality {
+  location: string;
+  city: string;
+  pm25: number;
+  aqi: number;
+  lastUpdated: Date;
+}
 
 export default function Dashboard() {
-  const aqi = aqiData
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>(devicesData);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
-  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
-  const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
-
-
-
-  const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"))
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
+  const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false;
+  const [currentTime, setCurrentTime] = useState(moment().format("ddd D MMM HH:mm:ss"));
+  const manager = useState(() => new DeviceManager())[0];
 
   useEffect(() => {
+    // Fetch air quality on mount
+    async function fetchData() {
+      try {
+        setLoading(true);
+        await manager.fetchAirQuality();
+        const data = manager.getAirQuality();
+        if (data) {
+          setAirQuality(data);
+        } else {
+          setError("No air quality data available");
+        }
+      } catch (err) {
+        setError("Failed to fetch air quality");
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+
+    // Update current time every second
     const interval = setInterval(() => {
-      setCurrentTime(moment().format("ddd D MMM HH:mm:ss"))
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
+      setCurrentTime(moment().format("ddd D MMM HH:mm:ss"));
+    }, 1000);
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      manager.destroy();
+    };
+  }, [manager]);
 
   const getPM25GradientClassHex = (aqi: number): string => {
     if (aqi < 51) {
-      // สีเขียว
-      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
+      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]";
     } else if (aqi < 101) {
-      // สีเหลือง
-      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
+      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]";
     } else if (aqi < 151) {
-      // สีส้ม
-      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]"
+      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]";
     } else if (aqi < 201) {
-      // สีแดง/ชมพู
-      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]"
+      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]";
     } else {
-      // สีม่วง
-      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]"
+      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]";
     }
-  }
+  };
 
   const getAQIBadgeColor = (aqi: number) => {
-    if (aqi <= 50) return "bg-green-100 text-green-800"
-    if (aqi <= 100) return "bg-yellow-100 text-yellow-800"
-    if (aqi <= 150) return "bg-orange-100 text-orange-800"
-    if (aqi <= 200) return "bg-red-100 text-red-800"
-    return "bg-purple-100 text-purple-700"
-  }
+    if (aqi <= 50) return "bg-green-100 text-green-800";
+    if (aqi <= 100) return "bg-yellow-100 text-yellow-800";
+    if (aqi <= 150) return "bg-orange-100 text-orange-800";
+    if (aqi <= 200) return "bg-red-100 text-red-800";
+    return "bg-purple-100 text-purple-700";
+  };
 
   const handleTogglePower = () => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
         ...prev,
         [selectedDevice.id]: !isOn,
-      }))
+      }));
       setDevices((prevDevices) =>
         prevDevices.map((d) => (d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d)),
-      )
-      setSelectedDevice((prev) => (prev ? { ...prev, status: isOn ? "off" : "on" } : null))
-      console.log(`Toggled power for device ${console.log(JSON.stringify(devices, null, 2))} to ${isOn ? "off" : "on"}`)
+      );
+      setSelectedDevice((prev) => (prev ? { ...prev, status: isOn ? "off" : "on" } : null));
+      console.log(`Toggled power for device ${selectedDevice.model} to ${isOn ? "off" : "on"}`);
     }
-  }
+  };
 
   const handleCloseDeviceDetail = () => {
-    setSelectedDevice(null)
+    setSelectedDevice(null);
+  };
+
+  if (error) {
+    return <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>;
   }
 
+  if (loading || !airQuality) {
+    return <div className="min-h-screen pt-10 px-5 text-white">Loading air quality...</div>;
+  }
 
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(aqi.aqi)}`}>
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       {/* Main Content */}
       <div className="px-4 pb-20">
         {/* Header */}
         <div className="text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">COSCI Space</h1>
-          <p className="text-xl opacity-90 mb-4">Bangkok, Petchburi</p>
+          <h1 className="text-4xl font-bold mb-2">{airQuality.location}</h1>
+          <p className="text-xl opacity-90 mb-4">{airQuality.city}</p>
           <p className="text-lg opacity-80">{currentTime}</p>
         </div>
 
         {/* AQI Display */}
         <div className="text-center text-white mb-8">
           <p className="text-lg mb-4">PM2.5</p>
-          <div className="text-8xl font-bold mb-2">{aqi.pm_25}</div>
+          <div className="text-8xl font-bold mb-2">{airQuality.pm25}</div>
           <p className="text-lg mb-4">μg/m³</p>
-          <Badge className={`${getAQIBadgeColor(aqi.aqi)} text-lg px-4 py-2`}>AQI {aqi.aqi}</Badge>
+          <Badge className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}>
+            AQI {airQuality.aqi}
+          </Badge>
         </div>
 
         {/* Devices Section */}
@@ -122,7 +153,7 @@ export default function Dashboard() {
                       <p className="text-gray-600 text-xs sm:text-sm">{device.location}</p>
                     </div>
                     <div>
-                          <StatusIndicator isOn={device.status === "on" ? true : false}/>
+                      <StatusIndicator isOn={device.status === "on"} />
                     </div>
                   </div>
                 </CardContent>
@@ -140,5 +171,5 @@ export default function Dashboard() {
         onTogglePower={handleTogglePower}
       />
     </div>
-  )
+  );
 }
