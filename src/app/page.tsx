@@ -20,7 +20,13 @@ interface AirQuality {
 }
 
 export default function Dashboard() {
-  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  const [airQuality, setAirQuality] = useState<AirQuality>({
+    location: "Main Room",
+    city: "Tokyo",
+    pm25: 0,
+    aqi: 0,
+    lastUpdated: new Date(),
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>(devicesData);
@@ -32,6 +38,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Fetch air quality on mount
+
     async function fetchData() {
       try {
         setLoading(true);
@@ -40,7 +47,7 @@ export default function Dashboard() {
         if (data) {
           setAirQuality(data);
         } else {
-          setError("No air quality data available");
+          
         }
       } catch (err) {
         setError("Failed to fetch air quality");
