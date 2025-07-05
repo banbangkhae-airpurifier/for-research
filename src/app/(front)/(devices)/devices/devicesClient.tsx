@@ -16,7 +16,7 @@ interface AQIData {
 
 type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 
-export default function Dashboard() {
+export default function DevicesClient() {
   const aqi = aqiData
 
   const [devices, setDevices] = useState<Device[]>(devicesData as unknown as Device[])

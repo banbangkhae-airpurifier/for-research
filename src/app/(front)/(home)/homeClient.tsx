@@ -19,7 +19,7 @@ interface AirQuality {
   lastUpdated: Date;
 }
 
-export default function Dashboard() {
+export default function HomeClient() {
   const [airQuality, setAirQuality] = useState<AirQuality>({
     location: "Main Room",
     city: "Tokyo",
