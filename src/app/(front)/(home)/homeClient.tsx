@@ -27,6 +27,7 @@ export default function HomeClient() {
     aqi: 0,
     lastUpdated: new Date(),
   });
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>(devicesData);
