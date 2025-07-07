@@ -37,7 +37,12 @@ export default function HomeClient() {
   const manager = useState(() => new DeviceManager())[0];
 
   useEffect(() => {
+  manager.setDevices(devices);
+}, [devices, manager]);
+
+  useEffect(() => {
     // Fetch air quality on mount
+    
 
     async function fetchData() {
       try {
@@ -93,17 +98,33 @@ export default function HomeClient() {
     return "bg-purple-100 text-purple-700";
   };
 
-  const handleTogglePower = () => {
+  const handleTogglePower = async () => {
     if (selectedDevice) {
+      await manager.toggleDevicePower(selectedDevice);
+      await manager.refreshDeviceState(selectedDevice);
+      await manager.getAQI(selectedDevice);
+      await manager.getPM25(selectedDevice);
+      await manager.getFilterLife(selectedDevice);
+
+      const updatedDevice = manager.getDeviceById(selectedDevice.id);
+
+
+
+      setSelectedDevice(updatedDevice || selectedDevice);
+
+      setDevices((prevDevices) =>
+        prevDevices.map((d) =>
+          d.id === selectedDevice.id
+            ? { ...d, status: isOn ? "off" : "on" }
+            : d
+        )
+      );
+
       setDevicePower((prev) => ({
         ...prev,
-        [selectedDevice.id]: !isOn,
+        [selectedDevice.id]: selectedDevice.status === "on",
       }));
-      setDevices((prevDevices) =>
-        prevDevices.map((d) => (d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d)),
-      );
-      setSelectedDevice((prev) => (prev ? { ...prev, status: isOn ? "off" : "on" } : null));
-      console.log(`Toggled power for device ${selectedDevice.model} to ${isOn ? "off" : "on"}`);
+
     }
   };
 

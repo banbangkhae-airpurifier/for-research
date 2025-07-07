@@ -33,9 +33,9 @@ interface DeviceAttributes {
   [key: string]: any;
 }
 
-class DeviceManager {
-  private habaseURL: string = 'YOUR_HABASE_URL'; // Replace with actual URL
-  private hatoken: string = 'YOUR_HA_TOKEN'; // Replace with actual token
+export class DeviceManager {
+  private habaseURL: string = 'https://adxc0rmwdqhadwgtuuut0qvbi9luftvn.ui.nabu.casa'; // Replace with actual URL
+  private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
   airQuality: AirQuality | null = null;
   private devices: Device[] = [];
   private refreshTimer: Subscription | null = null;
@@ -52,8 +52,8 @@ class DeviceManager {
 
   // Fetch AQI / PM2.5 from OpenWeather
   async fetchAirQuality(): Promise<void> {
-    // const url = 'https://api.openweathermap.org/data/2.5/air_pollution?lat=13.7563&lon=100.5018&appid=9a65a66ea74d1d1afea8c8325a52f734';
-    const url = ' http://localhost:6969/api/purple';
+    const url = 'https://api.openweathermap.org/data/2.5/air_pollution?lat=13.7563&lon=100.5018&appid=9a65a66ea74d1d1afea8c8325a52f734';
+    // const url = ' http://localhost:6969/api/purple';
    
     try {
       const response = await fetch(url);
@@ -156,6 +156,7 @@ class DeviceManager {
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json = await response.json();
+      console.log(`✅ Fetched state for ${entity}:`, json);
       return {
         state: json.state || '',
         attributes: json.attributes || {}
@@ -297,7 +298,9 @@ class DeviceManager {
   return this.airQuality;
 }
 
-
+  getDeviceById(id: string | number): Device | undefined {
+    return this.devices.find((device) => device.id === id);
+  }
 
   // Initialize devices
   setDevices(devices: Device[]): void {
