@@ -1,6 +1,6 @@
 // ไม่มี 'use client'
 import RequireLogin from "@/components/RequireLogin"
-import HomeClient from "./homeClient"
+import HomeClient from "../../../components/homeClient"
 
 export default function HomePage() {
   return (
