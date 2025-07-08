@@ -5,7 +5,6 @@ export async function POST(req: Request) {
   const { username, password } = await req.json()
   console.log(process.env.AUTH_USERNAME)
 
-
 if (username === process.env.AUTH_USERNAME && password === process.env.AUTH_PASSWORD) {
     const token = jwt.sign({ username }, process.env.JWT_SECRET!, { expiresIn: "1h" })
     const res = NextResponse.json({ message: "Logged in" })
