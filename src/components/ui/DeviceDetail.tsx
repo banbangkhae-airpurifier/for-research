@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Power } from "lucide-react"
-import { Device } from "@/lib/device"
+import { Device } from "@/lib/Device.1"
 
 interface DeviceDetailProps {
   device: Device | null

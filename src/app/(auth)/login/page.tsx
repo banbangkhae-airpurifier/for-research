@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -16,16 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-
 import DeviceManager, { AirQuality } from "@/lib/deviceManager"
-
-const getPM25GradientClassHex = (aqi: number): string => {
-  if (aqi < 51) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
-  else if (aqi < 101) return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
-  else if (aqi < 151) return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]"
-  else if (aqi < 201) return "bg-gradient-to-br from-[#F87171] to-[#EC4899]"
-  else return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]"
-}
+import { getPM25GradientClassHex } from "@/lib/bgColor"
 
 const formSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -80,12 +71,10 @@ export default function LoginPage() {
     }
   }
 
-  const bgColor = airQuality
-    ? getPM25GradientClassHex(airQuality.aqi)
-    : "bg-gradient-to-br from-gray-400 to-gray-500"
-
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${bgColor}`}>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${getPM25GradientClassHex(
+      airQuality?.aqi ?? null
+    )}`}>
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
@@ -95,7 +84,8 @@ export default function LoginPage() {
       {/* Login Card */}
       <div className="relative max-w-sm w-full flex flex-col items-center border border-white/20 rounded-2xl p-8 shadow-2xl bg-white/95 backdrop-blur-md">
         <div className="text-center mb-8">
-          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${bgColor}`}>
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${getPM25GradientClassHex(
+            airQuality?.aqi ?? null)}`}>
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

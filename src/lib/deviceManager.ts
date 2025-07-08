@@ -1,5 +1,5 @@
 import { interval, Subscription } from 'rxjs';
-import { Device } from './device';
+import { Device } from "./device";
 
 // Interfaces for type safety
 interface AirQualityComponents {

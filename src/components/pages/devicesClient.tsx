@@ -1,58 +1,64 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react"
+import {
+  Fan,
+  Power,
+  Settings,
+  Droplets,
+  Wind,
+  ChevronDown
+} from "lucide-react"
 import { Device, devicesData } from "@/lib/device"
 import DeviceManager, { AirQuality } from "@/lib/deviceManager"
 import DeviceDetail from "@/components/ui/DeviceDetail"
+import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor"
+
 
 type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 
 export default function DevicesClient() {
-  // สร้าง DeviceManager instance
-  const manager = useState(() => new DeviceManager())[0];
+  const manager = useState(() => new DeviceManager())[0]
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // State สำหรับ airQuality (เหมือน homeClient)
-  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // โหลดข้อมูลคุณภาพอากาศ
   useEffect(() => {
     async function fetchData() {
       try {
-        setLoading(true);
-        await manager.fetchAirQuality();
-        const data = manager.getAirQuality();
-        setAirQuality(data);
+        setLoading(true)
+        await manager.fetchAirQuality()
+        const data = manager.getAirQuality()
+        setAirQuality(data)
       } catch (err) {
-        setError("Failed to fetch air quality");
-        console.error("Error:", err);
+        setError("Failed to fetch air quality")
+        console.error("Error:", err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
-    fetchData();
-    // refresh อัตโนมัติทุก 30 วินาที
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [manager]);
 
-  // State หลักของอุปกรณ์และ UI
-  const [devices, setDevices] = useState<Device[]>(devicesData as Device[])
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+
+    return () => {
+      clearInterval(interval)
+      manager.destroy()
+    }
+  }, [manager])
+
+  const [devices, setDevices] = useState<Device[]>(devicesData)
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [controlPanelOpen, setControlPanelOpen] = useState(false)
-
-  // State สำหรับควบคุม global (ทุกอุปกรณ์)
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual")
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off")
   const [, setGlobalPower] = useState(false)
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
 
-  // เช็คสถานะเปิด/ปิดของอุปกรณ์ที่เลือก
-  const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
+  const isOn = selectedDevice
+    ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on"
+    : false
 
-  // Sync devicePower เมื่อเลือกอุปกรณ์ใหม่
   useEffect(() => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
@@ -62,7 +68,6 @@ export default function DevicesClient() {
     }
   }, [selectedDevice])
 
-  // กำหนดค่าเริ่มต้น global state และ devicePower
   useEffect(() => {
     if (devices.length > 0) {
       const firstDevice = devices[0]
@@ -70,7 +75,6 @@ export default function DevicesClient() {
       setGlobalFanLevel(firstDevice.fanSpeed as FanLevel)
       setGlobalPower(firstDevice.status === "on")
 
-      // สร้าง object สำหรับสถานะ power ของแต่ละอุปกรณ์
       const initialPowerStates: { [id: string]: boolean } = {}
       devices.forEach((device) => {
         initialPowerStates[device.id] = device.status === "on"
@@ -79,7 +83,6 @@ export default function DevicesClient() {
     }
   }, [])
 
-  // Toggle เปิด/ปิดอุปกรณ์ที่เลือก
   const handleTogglePower = () => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
@@ -97,7 +100,6 @@ export default function DevicesClient() {
     }
   }
 
-  // เปลี่ยนโหมดทุกอุปกรณ์ (auto/manual)
   const handleGlobalModeChange = (mode: Device["mode"]) => {
     setGlobalMode(mode)
     const newDevicePowerState: { [id: string]: boolean } = {}
@@ -113,10 +115,8 @@ export default function DevicesClient() {
       })
     )
 
-    // ถ้าเป็น auto ให้เปิดทุกเครื่อง
     if (mode === "auto") setDevicePower(newDevicePowerState)
 
-    // Sync กับ selectedDevice
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
@@ -126,7 +126,6 @@ export default function DevicesClient() {
     }
   }
 
-  // เปลี่ยน fan level ทุกอุปกรณ์
   const handleGlobalFanLevel = (level: FanLevel) => {
     setGlobalFanLevel(level)
     const shouldBeOn = level !== "off"
@@ -145,7 +144,6 @@ export default function DevicesClient() {
     )
     setDevicePower(newDevicePowerState)
 
-    // Sync กับ selectedDevice
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
@@ -155,41 +153,28 @@ export default function DevicesClient() {
     }
   }
 
-  // Utility สำหรับแสดงสีพื้นหลังตามค่า AQI
-  const getPM25GradientClassHex = (aqi: number | null): string => {
-    if (aqi === null) return "bg-gradient-to-br from-gray-200 to-gray-400"
-    if (aqi < 51) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
-    if (aqi < 101) return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
-    if (aqi < 151) return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]"
-    if (aqi < 201) return "bg-gradient-to-br from-[#F87171] to-[#EC4899]"
-    return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]"
-  }
-
-  // Utility สำหรับแสดงสถานะ AQI
-  const getAQIStatus = (aqi: number | null): string => {
-    if (aqi === null) return "-"
-    if (aqi < 51) return "Good"
-    if (aqi < 101) return "Moderate"
-    if (aqi < 151) return "Unhealthy for Sensitive Groups"
-    if (aqi < 201) return "Unhealthy"
-    return "Very Unhealthy"
-  }
-
-  // ปิด Device Detail
   const handleCloseDeviceDetail = () => setSelectedDevice(null)
 
-  // แสดง error
   if (error) {
-    return <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>
+    )
   }
 
-  // แสดง loading
   if (loading || !airQuality) {
-    return <div className="min-h-screen pt-10 px-5 text-white">Loading air quality...</div>;
+    return (
+      <div className="min-h-screen pt-10 px-5 text-white">
+        Loading air quality...
+      </div>
+    )
   }
 
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
+    <div
+      className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(
+        airQuality.aqi
+      )}`}
+    >
       <div className="px-4 pb-20">
         {/* Header */}
         <div className="text-white mb-8">

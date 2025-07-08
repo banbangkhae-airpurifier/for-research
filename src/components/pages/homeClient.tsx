@@ -9,6 +9,7 @@ import DeviceDetail from "@/components/ui/DeviceDetail";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import moment from "moment";
 import DeviceManager, { AirQuality } from "@/lib/deviceManager";
+import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor"
 
 export default function HomeClient() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
@@ -27,8 +28,6 @@ export default function HomeClient() {
 
   useEffect(() => {
     // Fetch air quality on mount
-    
-
     async function fetchData() {
       try {
         setLoading(true);
@@ -60,28 +59,6 @@ export default function HomeClient() {
       manager.destroy();
     };
   }, [manager]);
-
-  const getPM25GradientClassHex = (aqi: number): string => {
-    if (aqi < 51) {
-      return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]";
-    } else if (aqi < 101) {
-      return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]";
-    } else if (aqi < 151) {
-      return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]";
-    } else if (aqi < 201) {
-      return "bg-gradient-to-br from-[#F87171] to-[#EC4899]";
-    } else {
-      return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]";
-    }
-  };
-
-  const getAQIBadgeColor = (aqi: number) => {
-    if (aqi <= 50) return "bg-green-100 text-green-800";
-    if (aqi <= 100) return "bg-yellow-100 text-yellow-800";
-    if (aqi <= 150) return "bg-orange-100 text-orange-800";
-    if (aqi <= 200) return "bg-red-100 text-red-800";
-    return "bg-purple-100 text-purple-700";
-  };
 
   const handleTogglePower = async () => {
     if (selectedDevice) {
