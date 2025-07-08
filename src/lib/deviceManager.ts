@@ -20,7 +20,7 @@ interface OpenWeatherAirQualityResponse {
   list: AirQualityItem[];
 }
 
-interface AirQuality {
+export interface AirQuality {
   location: string;
   city: string;
   pm25: number;

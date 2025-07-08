@@ -1,35 +1,58 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
 import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react"
-
 import { Device, devicesData } from "@/lib/device"
-
-import aqiData from "@/data/aqi.json"
-import DeviceDetail from "@/components/DeviceDetail"
-
-interface AQIData {
-  pm25: number
-  aqi: number
-}
+import DeviceManager, { AirQuality } from "@/lib/deviceManager"
+import DeviceDetail from "@/components/ui/DeviceDetail"
 
 type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
 
 export default function DevicesClient() {
-  const aqi = aqiData
+  // สร้าง DeviceManager instance
+  const manager = useState(() => new DeviceManager())[0];
 
-  const [devices, setDevices] = useState<Device[]>(devicesData as unknown as Device[])
+  // State สำหรับ airQuality (เหมือน homeClient)
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // โหลดข้อมูลคุณภาพอากาศ
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        await manager.fetchAirQuality();
+        const data = manager.getAirQuality();
+        setAirQuality(data);
+      } catch (err) {
+        setError("Failed to fetch air quality");
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+    // refresh อัตโนมัติทุก 30 วินาที
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [manager]);
+
+  // State หลักของอุปกรณ์และ UI
+  const [devices, setDevices] = useState<Device[]>(devicesData as Device[])
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [controlPanelOpen, setControlPanelOpen] = useState(false)
-  // Global control states
+
+  // State สำหรับควบคุม global (ทุกอุปกรณ์)
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual")
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off")
   const [, setGlobalPower] = useState(false)
   const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
+
+  // เช็คสถานะเปิด/ปิดของอุปกรณ์ที่เลือก
   const isOn = selectedDevice ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") : false
 
-
+  // Sync devicePower เมื่อเลือกอุปกรณ์ใหม่
   useEffect(() => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
@@ -39,15 +62,15 @@ export default function DevicesClient() {
     }
   }, [selectedDevice])
 
-  // Initialize global states based on first device or most common settings
+  // กำหนดค่าเริ่มต้น global state และ devicePower
   useEffect(() => {
     if (devices.length > 0) {
       const firstDevice = devices[0]
       setGlobalMode(firstDevice.mode)
-      setGlobalFanLevel(firstDevice.fanLevel as FanLevel)
+      setGlobalFanLevel(firstDevice.fanSpeed as FanLevel)
       setGlobalPower(firstDevice.status === "on")
 
-      // Initialize device power states
+      // สร้าง object สำหรับสถานะ power ของแต่ละอุปกรณ์
       const initialPowerStates: { [id: string]: boolean } = {}
       devices.forEach((device) => {
         initialPowerStates[device.id] = device.status === "on"
@@ -56,6 +79,7 @@ export default function DevicesClient() {
     }
   }, [])
 
+  // Toggle เปิด/ปิดอุปกรณ์ที่เลือก
   const handleTogglePower = () => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
@@ -63,57 +87,50 @@ export default function DevicesClient() {
         [selectedDevice.id]: !isOn,
       }))
       setDevices((prevDevices) =>
-        prevDevices.map((d) => (d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d)),
+        prevDevices.map((d) =>
+          d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d
+        )
       )
-      setSelectedDevice((prev) => (prev ? { ...prev, status: isOn ? "off" : "on" } : null))
+      setSelectedDevice((prev) =>
+        prev ? { ...prev, status: isOn ? "off" : "on" } : null
+      )
     }
   }
 
-  // Global mode control for all devices
+  // เปลี่ยนโหมดทุกอุปกรณ์ (auto/manual)
   const handleGlobalModeChange = (mode: Device["mode"]) => {
     setGlobalMode(mode)
-
     const newDevicePowerState: { [id: string]: boolean } = {}
 
     setDevices((prevDevices) =>
       prevDevices.map((device) => {
-        if (mode === "auto") {
-          newDevicePowerState[device.id] = true
-        }
+        if (mode === "auto") newDevicePowerState[device.id] = true
         return {
           ...device,
-          mode: mode,
+          mode,
           status: mode === "auto" ? "on" : device.status,
         }
-      }),
+      })
     )
 
-    // Update device power states when switching to auto
-    if (mode === "auto") {
-      setDevicePower(newDevicePowerState)
-    }
+    // ถ้าเป็น auto ให้เปิดทุกเครื่อง
+    if (mode === "auto") setDevicePower(newDevicePowerState)
 
-    // Update selected device if exists
+    // Sync กับ selectedDevice
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
-          ? {
-              ...prev,
-              mode: mode,
-              status: mode === "auto" ? "on" : prev.status,
-            }
-          : null,
+          ? { ...prev, mode, status: mode === "auto" ? "on" : prev.status }
+          : null
       )
     }
   }
 
+  // เปลี่ยน fan level ทุกอุปกรณ์
   const handleGlobalFanLevel = (level: FanLevel) => {
     setGlobalFanLevel(level)
-
-    // Automatically turn devices on/off based on fan level
     const shouldBeOn = level !== "off"
     setGlobalPower(shouldBeOn)
-
     const newDevicePowerState: { [id: string]: boolean } = {}
 
     setDevices((prevDevices) =>
@@ -124,26 +141,23 @@ export default function DevicesClient() {
           fanSpeed: level,
           status: shouldBeOn ? "on" : "off",
         }
-      }),
+      })
     )
-
     setDevicePower(newDevicePowerState)
 
-    // Update selected device if exists
+    // Sync กับ selectedDevice
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
-          ? {
-              ...prev,
-              fanSpeed: level,
-              status: shouldBeOn ? "on" : "off",
-            }
-          : null,
+          ? { ...prev, fanSpeed: level, status: shouldBeOn ? "on" : "off" }
+          : null
       )
     }
   }
 
-  const getPM25GradientClassHex = (aqi: number): string => {
+  // Utility สำหรับแสดงสีพื้นหลังตามค่า AQI
+  const getPM25GradientClassHex = (aqi: number | null): string => {
+    if (aqi === null) return "bg-gradient-to-br from-gray-200 to-gray-400"
     if (aqi < 51) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
     if (aqi < 101) return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
     if (aqi < 151) return "bg-gradient-to-br from-[#FB923C] to-[#EA580C]"
@@ -151,7 +165,9 @@ export default function DevicesClient() {
     return "bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]"
   }
 
-  const getAQIStatus = (aqi: number): string => {
+  // Utility สำหรับแสดงสถานะ AQI
+  const getAQIStatus = (aqi: number | null): string => {
+    if (aqi === null) return "-"
     if (aqi < 51) return "Good"
     if (aqi < 101) return "Moderate"
     if (aqi < 151) return "Unhealthy for Sensitive Groups"
@@ -159,24 +175,34 @@ export default function DevicesClient() {
     return "Very Unhealthy"
   }
 
-  const handleCloseDeviceDetail = () => {
-    setSelectedDevice(null)
+  // ปิด Device Detail
+  const handleCloseDeviceDetail = () => setSelectedDevice(null)
+
+  // แสดง error
+  if (error) {
+    return <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>;
+  }
+
+  // แสดง loading
+  if (loading || !airQuality) {
+    return <div className="min-h-screen pt-10 px-5 text-white">Loading air quality...</div>;
   }
 
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(aqi.aqi)}`}>
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       <div className="px-4 pb-20">
+        {/* Header */}
         <div className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Devices</h1>
           <div className="flex items-center gap-4 text-white/90">
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <span className="text-sm">Current AQI: </span>
-              <span className="font-bold text-lg">{aqi.aqi}</span>
-              <span className="text-sm ml-2">({getAQIStatus(aqi.aqi)})</span>
+              <span className="font-bold text-lg">{airQuality.aqi ?? "-"}</span>
+              <span className="text-sm ml-2">({getAQIStatus(airQuality.aqi)})</span>
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <span className="text-sm">PM2.5: </span>
-              <span className="font-bold">{aqi.pm25} μg/m³</span>
+              <span className="font-bold">{airQuality.pm25 ?? "-"} μg/m³</span>
             </div>
           </div>
         </div>
@@ -323,6 +349,6 @@ export default function DevicesClient() {
         devicePower={devicePower}
         onTogglePower={handleTogglePower}
       />
-    </div>
+      </div>
   )
 }

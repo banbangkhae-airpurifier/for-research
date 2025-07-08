@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,28 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wind } from "lucide-react";
 import { Device, devicesData } from "@/lib/device";
-import DeviceManager from "@/lib/deviceManager";
-import DeviceDetail from "@/components/DeviceDetail";
+import DeviceDetail from "@/components/ui/DeviceDetail";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import moment from "moment";
-
-interface AirQuality {
-  location: string;
-  city: string;
-  pm25: number;
-  aqi: number;
-  lastUpdated: Date;
-}
+import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 
 export default function HomeClient() {
-  const [airQuality, setAirQuality] = useState<AirQuality>({
-    location: "Main Room",
-    city: "Tokyo",
-    pm25: 0,
-    aqi: 0,
-    lastUpdated: new Date(),
-  });
-  
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>(devicesData);

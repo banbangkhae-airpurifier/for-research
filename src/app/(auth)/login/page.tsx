@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -16,7 +16,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import aqi from "@/data/aqi.json"
+
+import DeviceManager, { AirQuality } from "@/lib/deviceManager"
 
 const getPM25GradientClassHex = (aqi: number): string => {
   if (aqi < 51) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
@@ -36,11 +37,28 @@ type FormData = z.infer<typeof formSchema>
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
+  const manager = useState(() => new DeviceManager())[0]
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: { username: "", password: "" },
   })
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await manager.fetchAirQuality()
+        const data = manager.getAirQuality()
+        if (data) setAirQuality(data)
+      } catch (err) {
+        console.error("Error fetching air quality:", err)
+      }
+    }
+
+    fetchData()
+    return () => manager.destroy()
+  }, [manager])
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
@@ -51,11 +69,10 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       })
       if (res.ok) {
-        router.push("/") // หรือ "/devices" ตามที่คุณต้องการ
+        router.push("/")
       } else {
         alert("Invalid credentials")
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("An error occurred. Please try again.")
     } finally {
@@ -63,8 +80,12 @@ export default function LoginPage() {
     }
   }
 
+  const bgColor = airQuality
+    ? getPM25GradientClassHex(airQuality.aqi)
+    : "bg-gradient-to-br from-gray-400 to-gray-500"
+
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${getPM25GradientClassHex(aqi.aqi)}`}>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${bgColor}`}>
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-white/10 blur-3xl" />
@@ -74,7 +95,7 @@ export default function LoginPage() {
       {/* Login Card */}
       <div className="relative max-w-sm w-full flex flex-col items-center border border-white/20 rounded-2xl p-8 shadow-2xl bg-white/95 backdrop-blur-md">
         <div className="text-center mb-8">
-          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${getPM25GradientClassHex(aqi.aqi)}`}>
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${bgColor}`}>
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -123,7 +144,11 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={loading} className="flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform bg-blue-700 text-white shadow-md hover:bg-blue-900">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform bg-blue-700 text-white shadow-md hover:bg-blue-900"
+            >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
