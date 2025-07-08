@@ -1,162 +1,192 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import {
-  Fan,
-  Power,
-  Settings,
-  Droplets,
-  Wind,
-  ChevronDown
-} from "lucide-react"
-import { Device, devicesData } from "@/lib/device"
-import DeviceManager, { AirQuality } from "@/lib/deviceManager"
-import DeviceDetail from "@/components/ui/DeviceDetail"
-import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor"
-import type { FanLevel } from "@/lib/deviceManager"
+import { useState, useEffect } from "react";
+import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react";
+import DeviceDetail from "@/components/ui/DeviceDetail";
+import { Device, devicesData } from "@/lib/device";
+import DeviceManager, { AirQuality } from "@/lib/deviceManager";
+import type { FanLevel } from "@/lib/deviceManager";
+import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 
 export default function DevicesClient() {
-  const manager = useState(() => new DeviceManager())[0]
-  const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // ========== STATE MANAGEMENT ==========
+  
+  // Device Manager Instance
+  const manager = useState(() => new DeviceManager())[0];
+  
+  // Air Quality State
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        await manager.fetchAirQuality()
-        const data = manager.getAirQuality()
-        setAirQuality(data)
-      } catch (err) {
-        setError("Failed to fetch air quality")
-        console.error("Error:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Device State
+  const [devices, setDevices] = useState<Device[]>(devicesData);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
+  
+  // Control Panel State
+  const [controlPanelOpen, setControlPanelOpen] = useState(false);
+  const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual");
+  const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off");
+  const [, setGlobalPower] = useState(false);
 
-    fetchData()
-    const interval = setInterval(fetchData, 30000)
-
-    return () => {
-      clearInterval(interval)
-      manager.destroy()
-    }
-  }, [manager])
-
-  const [devices, setDevices] = useState<Device[]>(devicesData)
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
-  const [controlPanelOpen, setControlPanelOpen] = useState(false)
-  const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual")
-  const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off")
-  const [, setGlobalPower] = useState(false)
-  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({})
-
+  // ========== COMPUTED VALUES ==========
+  
   const isOn = selectedDevice
     ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on"
-    : false
+    : false;
 
+  // ========== EFFECTS ==========
+  
+  // Air quality data fetching effect
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        await manager.fetchAirQuality();
+        const data = manager.getAirQuality();
+        setAirQuality(data);
+      } catch (err) {
+        setError("Failed to fetch air quality");
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+
+    return () => {
+      clearInterval(interval);
+      manager.destroy();
+    };
+  }, [manager]);
+
+  // Selected device power state sync
   useEffect(() => {
     if (selectedDevice) {
       setDevicePower((prev) => ({
         ...prev,
         [selectedDevice.id]: selectedDevice.status === "on",
-      }))
+      }));
     }
-  }, [selectedDevice])
+  }, [selectedDevice]);
 
+  // Initialize device states ** TAKA **
   useEffect(() => {
     if (devices.length > 0) {
-      const firstDevice = devices[0]
-      setGlobalMode(firstDevice.mode)
-      setGlobalFanLevel(firstDevice.fanSpeed as FanLevel)
-      setGlobalPower(firstDevice.status === "on")
+      const firstDevice = devices[0];
+      setGlobalMode(firstDevice.mode);
+      setGlobalFanLevel(firstDevice.fanSpeed as FanLevel);
+      setGlobalPower(firstDevice.status === "on");
 
-      const initialPowerStates: { [id: string]: boolean } = {}
+      const initialPowerStates: { [id: string]: boolean } = {};
       devices.forEach((device) => {
-        initialPowerStates[device.id] = device.status === "on"
-      })
-      setDevicePower(initialPowerStates)
+        initialPowerStates[device.id] = device.status === "on";
+      });
+      setDevicePower(initialPowerStates);
     }
-  }, [])
+  }, []);
 
+  // ========== EVENT HANDLERS ========== ** TAKA **
+  
   const handleTogglePower = () => {
-    if (selectedDevice) {
-      setDevicePower((prev) => ({
-        ...prev,
-        [selectedDevice.id]: !isOn,
-      }))
-      setDevices((prevDevices) =>
-        prevDevices.map((d) =>
-          d.id === selectedDevice.id ? { ...d, status: isOn ? "off" : "on" } : d
-        )
+    if (!selectedDevice) return;
+    
+    setDevicePower((prev) => ({
+      ...prev,
+      [selectedDevice.id]: !isOn,
+    }));
+    
+    setDevices((prevDevices) =>
+      prevDevices.map((device) =>
+        device.id === selectedDevice.id 
+          ? { ...device, status: isOn ? "off" : "on" } 
+          : device
       )
-      setSelectedDevice((prev) =>
-        prev ? { ...prev, status: isOn ? "off" : "on" } : null
-      )
-    }
-  }
+    );
+    
+    setSelectedDevice((prev) =>
+      prev ? { ...prev, status: isOn ? "off" : "on" } : null
+    );
+  };
 
   const handleGlobalModeChange = (mode: Device["mode"]) => {
-    setGlobalMode(mode)
-    const newDevicePowerState: { [id: string]: boolean } = {}
+    setGlobalMode(mode);
+    const newDevicePowerState: { [id: string]: boolean } = {};
 
     setDevices((prevDevices) =>
       prevDevices.map((device) => {
-        if (mode === "auto") newDevicePowerState[device.id] = true
+        if (mode === "auto") newDevicePowerState[device.id] = true;
         return {
           ...device,
           mode,
           status: mode === "auto" ? "on" : device.status,
-        }
+        };
       })
-    )
+    );
 
-    if (mode === "auto") setDevicePower(newDevicePowerState)
+    if (mode === "auto") setDevicePower(newDevicePowerState);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
           ? { ...prev, mode, status: mode === "auto" ? "on" : prev.status }
           : null
-      )
+      );
     }
-  }
+  };
 
   const handleGlobalFanLevel = (level: FanLevel) => {
-    setGlobalFanLevel(level)
-    const shouldBeOn = level !== "off"
-    setGlobalPower(shouldBeOn)
-    const newDevicePowerState: { [id: string]: boolean } = {}
+    setGlobalFanLevel(level);
+    const shouldBeOn = level !== "off";
+    setGlobalPower(shouldBeOn);
+    const newDevicePowerState: { [id: string]: boolean } = {};
 
     setDevices((prevDevices) =>
       prevDevices.map((device) => {
-        newDevicePowerState[device.id] = shouldBeOn
+        newDevicePowerState[device.id] = shouldBeOn;
         return {
           ...device,
           fanSpeed: level,
           status: shouldBeOn ? "on" : "off",
-        }
+        };
       })
-    )
-    setDevicePower(newDevicePowerState)
+    );
+    
+    setDevicePower(newDevicePowerState);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
         prev
           ? { ...prev, fanSpeed: level, status: shouldBeOn ? "on" : "off" }
           : null
-      )
+      );
     }
-  }
+  };
 
-  const handleCloseDeviceDetail = () => setSelectedDevice(null)
+  const handleCloseDeviceDetail = () => {
+    setSelectedDevice(null);
+  };
 
+  const handleDeviceClick = (device: Device) => {
+    setSelectedDevice(device);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleControlPanelToggle = () => {
+    setControlPanelOpen(!controlPanelOpen);
+  };
+
+  // ========== CONDITIONAL RENDERING ==========
+  
   if (error) {
     return (
-      <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>
-    )
+      <div className="min-h-screen pt-10 px-5 text-red-500">
+        {error}
+      </div>
+    );
   }
 
   if (loading || !airQuality) {
@@ -164,18 +194,17 @@ export default function DevicesClient() {
       <div className="min-h-screen pt-10 px-5 text-white">
         Loading air quality...
       </div>
-    )
+    );
   }
 
+  // ========== MAIN RENDER ==========
+  
   return (
-    <div
-      className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(
-        airQuality.aqi
-      )}`}
-    >
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       <div className="px-4 pb-20">
-        {/* Header */}
-        <div className="text-white mb-8">
+        
+        {/* Header Section */}
+        <header className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Devices</h1>
           <div className="flex items-center gap-4 text-white/90">
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
@@ -188,92 +217,95 @@ export default function DevicesClient() {
               <span className="font-bold">{airQuality.pm25 ?? "-"} μg/m³</span>
             </div>
           </div>
-        </div>
+        </header>
 
-        <div>
-          <div className="w-full">
-            <div className="mb-6 bg-white rounded-xl overflow-hidden shadow-lg">
-              <button
-                className="w-full flex justify-between items-center px-6 py-8 text-left text-xl font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
-                onClick={() => setControlPanelOpen(!controlPanelOpen)}
-              >
-                <span>Control Panel</span>
-                <div className={`transform transition-transform duration-200 ${controlPanelOpen ? "rotate-180" : ""}`}>
-                  <ChevronDown />
-                </div>
-              </button>
+        {/* Control Panel Section */}
+        <section className="mb-6">
+          <div className="bg-white rounded-xl overflow-hidden shadow-lg">
+            <button
+              className="w-full flex justify-between items-center px-6 py-8 text-left text-xl font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
+              onClick={handleControlPanelToggle}
+            >
+              <span>Control Panel</span>
+              <div className={`transform transition-transform duration-200 ${controlPanelOpen ? "rotate-180" : ""}`}>
+                <ChevronDown />
+              </div>
+            </button>
 
-              {/* Animated Panel Body */}
+            {/* Animated Panel Body */}
+            <div
+              className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                controlPanelOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
               <div
-                className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                  controlPanelOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${
+                  controlPanelOpen ? "translate-y-0" : "-translate-y-4"
                 }`}
               >
-                <div
-                  className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${
-                    controlPanelOpen ? "translate-y-0" : "-translate-y-4"
-                  }`}
-                >
-                  {/* Global Mode Control */}
+                {/* Global Mode Control */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">
+                    MODE (ALL DEVICES)
+                  </h3>
+                  <div className="flex gap-2">
+                    {(["auto", "manual"] as Device["mode"][]).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => handleGlobalModeChange(mode)}
+                        className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+                          ${
+                            globalMode === mode
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Global Fan Level Control */}
+                {globalMode === "manual" && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-3">MODE (ALL DEVICES)</h3>
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">
+                      FAN LEVEL (ALL DEVICES)
+                    </h3>
                     <div className="flex gap-2">
-                      {(["auto", "manual"] as Device["mode"][]).map((mode) => (
+                      {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
                         <button
-                          key={mode}
-                          onClick={() => handleGlobalModeChange(mode)}
+                          key={level}
+                          onClick={() => handleGlobalFanLevel(level)}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
                             ${
-                              globalMode === mode
-                                ? "bg-blue-500 text-white shadow-md"
+                              globalFanLevel === level
+                                ? "bg-green-500 text-white shadow-md"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                         >
-                          {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
                         </button>
                       ))}
                     </div>
                   </div>
-
-                  {/* Global Fan Level Control */}
-                  {globalMode === "manual" && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-3">FAN LEVEL (ALL DEVICES)</h3>
-                      <div className="flex gap-2">
-                        {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
-                          <button
-                            key={level}
-                            onClick={() => handleGlobalFanLevel(level)}
-                            className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
-                              ${
-                                globalFanLevel === level
-                                  ? "bg-green-500 text-white shadow-md"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              }`}
-                          >
-                            {level.charAt(0).toUpperCase() + level.slice(1)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
-          <h2 className="text-2xl font-bold text-white mb-6">Devices ({devices.length})</h2>
+        {/* Devices Grid Section */}
+        <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
+          <h2 className="text-2xl font-bold text-white mb-6">
+            Devices ({devices.length})
+          </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {devices.map((device) => (
               <div
                 key={device.id}
                 className="bg-white rounded-xl p-4 shadow cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => {
-                  setSelectedDevice(device)
-                  window.scrollTo({ top: 0, behavior: "smooth" })
-                }}
+                onClick={() => handleDeviceClick(device)}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div
@@ -281,7 +313,11 @@ export default function DevicesClient() {
                       device.status === "on" ? "bg-green-200" : "bg-gray-200"
                     }`}
                   >
-                    <Wind className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"}`} />
+                    <Wind 
+                      className={`w-6 h-6 ${
+                        device.status === "on" ? "text-green-600" : "text-gray-600"
+                      }`} 
+                    />
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">{device.model}</h3>
@@ -291,7 +327,11 @@ export default function DevicesClient() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <Power className={`w-4 h-4 ${device.status === "on" ? "text-green-600" : "text-gray-400"}`} />
+                    <Power 
+                      className={`w-4 h-4 ${
+                        device.status === "on" ? "text-green-600" : "text-gray-400"
+                      }`} 
+                    />
                     <span>Status: {device.status === "off" ? "Off" : "On"}</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -313,7 +353,13 @@ export default function DevicesClient() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Room AQI:</span>
                     <span
-                      className={`font-semibold ${device.aqiValue < 51 ? "text-green-600" : device.aqiValue < 101 ? "text-yellow-600" : "text-red-600"}`}
+                      className={`font-semibold ${
+                        device.aqiValue < 51 
+                          ? "text-green-600" 
+                          : device.aqiValue < 101 
+                          ? "text-yellow-600" 
+                          : "text-red-600"
+                      }`}
                     >
                       {device.aqiValue}
                     </span>
@@ -322,9 +368,10 @@ export default function DevicesClient() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
+      {/* Device Detail Modal */}
       <DeviceDetail
         device={selectedDevice}
         isOpen={!!selectedDevice}
@@ -332,6 +379,6 @@ export default function DevicesClient() {
         devicePower={devicePower}
         onTogglePower={handleTogglePower}
       />
-      </div>
-  )
+    </div>
+  );
 }
