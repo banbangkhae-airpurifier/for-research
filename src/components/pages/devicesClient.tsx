@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react";
-import DeviceDetail from "@/components/ui/DeviceDetail";
+import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import type { FanLevel } from "@/lib/deviceManager";

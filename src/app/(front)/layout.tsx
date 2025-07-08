@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Urbanist } from "next/font/google"; // เลือกตัวใดตัวหนึ่ง
 import "../globals.css";
-import Navbar from "@/components/ui/Navbar";
+import Navbar from "@/components/sub-component/Navbar";
 
 const urbanist = Urbanist({
   variable: "--font-urbanist",
