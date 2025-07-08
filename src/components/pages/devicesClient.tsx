@@ -13,9 +13,7 @@ import { Device, devicesData } from "@/lib/device"
 import DeviceManager, { AirQuality } from "@/lib/deviceManager"
 import DeviceDetail from "@/components/ui/DeviceDetail"
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor"
-
-
-type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
+import type { FanLevel } from "@/lib/deviceManager"
 
 export default function DevicesClient() {
   const manager = useState(() => new DeviceManager())[0]

@@ -33,6 +33,8 @@ interface DeviceAttributes {
   [key: string]: any;
 }
 
+export type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
+
 export class DeviceManager {
   private habaseURL: string = 'https://adxc0rmwdqhadwgtuuut0qvbi9luftvn.ui.nabu.casa'; // Replace with actual URL
   private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
