@@ -133,6 +133,7 @@ export class DeviceManager {
     if (autoModeState.state) {
       device.mode = autoModeState.state === 'on' ? 'auto' : 'manual';
     }
+    device.status = "off"
   }
 
   // Refresh all devices

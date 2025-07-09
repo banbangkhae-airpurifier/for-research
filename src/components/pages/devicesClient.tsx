@@ -35,7 +35,13 @@ export default function DevicesClient() {
     ? selectedDevice.status === "on"
     : false;
 
+
   // ========== EFFECTS ==========
+
+  // Update device manager when devices change
+  useEffect(() => {
+    manager.setDevices(devices);
+  }, [devices, manager]);
   
   // Air quality data fetching effect
   useEffect(() => {
@@ -65,36 +71,65 @@ export default function DevicesClient() {
 
   // Initialize device states ** TAKA **
   useEffect(() => {
-    if (devices.length > 0) {
-      const firstDevice = devices[0];
-      setGlobalMode(firstDevice.mode);
-      setGlobalFanLevel(firstDevice.fanLevel as FanLevel);
-      setGlobalPower(firstDevice.status === "on");
+    const fetchData = async () => {
+      try {
+        // setLoading(true);
+        // Fetch and update all devices
+        await manager.refreshAllDevices();
+        const updatedDevices = manager.getDevices();
+        setDevices(updatedDevices); // Sync React state with DeviceManager
+      } catch (err) {
+        setError("Failed to fetch data");
+        console.error("Error:", err);
+      } finally {
+        // setLoading(false);
+      }
+    };
 
-      const initialPowerStates: { [id: string]: boolean } = {};
-      devices.forEach((device) => {
-        initialPowerStates[device.id] = device.status === "on";
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    fetchData();
+
+    return () => {
+      manager.destroy();
+    };
+  }, [manager]);
 
   // ========== EVENT HANDLERS ========== ** TAKA **
   
-  const handleTogglePower = () => {
+  const handleTogglePower = async () => {
     if (!selectedDevice) return;
-    
+
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
-        device.id === selectedDevice.id 
-          ? { ...device, status: isOn ? "off" : "on" } 
+        device.id === selectedDevice.id
+          ? { ...device, status: isOn ? "off" : "on" }
           : device
       )
     );
+    selectedDevice.status = isOn ? "off" : "on";
     
-    setSelectedDevice((prev) =>
-      prev ? { ...prev, status: isOn ? "off" : "on" } : null
-    );
+    try {
+      // Toggle device power through the manager
+      await manager.toggleDevicePower(selectedDevice);
+      
+      // Refresh device state and fetch updated data
+      await manager.refreshDeviceState(selectedDevice);
+      await manager.getAQI(selectedDevice);
+      await manager.getPM25(selectedDevice);
+      await manager.getFilterLife(selectedDevice);
+
+      // Get the updated device data
+      const updatedDevice = manager.getDeviceById(selectedDevice.id);
+
+      // Update the selected device with new data
+      setSelectedDevice(updatedDevice || selectedDevice);
+
+      // Update the devices array with the new status
+
+
+
+    } catch (err) {
+      console.error("Error toggling device power:", err);
+    }
   };
 
   const handleGlobalModeChange = (mode: Device["mode"]) => {

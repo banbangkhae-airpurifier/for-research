@@ -43,7 +43,7 @@ export default function HomeClient() {
     manager.setDevices(devices);
   }, [devices, manager]);
 
-  // Main initialization effect
+  // ดึงค่า Air Quality มาอัพเดตเมื่อโหลดหน้าเว็บ
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -74,9 +74,9 @@ export default function HomeClient() {
       clearInterval(timeInterval);
       manager.destroy();
     };
-  }, [manager]); // Empty dependency array ensures it runs only on mount
+  }, [manager]);
 
-  // 2 Main initialization effect
+  // ดึงค่า Devices มาอัพเดตเมื่อโหลดหน้าเว็บ
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -98,7 +98,7 @@ export default function HomeClient() {
     return () => {
       manager.destroy();
     };
-  }, [manager]); // Empty dependency array ensures it runs only on mount
+  }, [manager]);
 
   // ========== EVENT HANDLERS ========== ** TAKA **
   
