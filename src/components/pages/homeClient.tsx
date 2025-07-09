@@ -48,38 +48,57 @@ export default function HomeClient() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch air quality data from the device manager
+
+        // Fetch air quality data
         await manager.fetchAirQuality();
         const data = manager.getAirQuality();
-        
         if (data) {
           setAirQuality(data);
-        } else {
-          // TODO: Handle case when no air quality data is available
         }
       } catch (err) {
-        setError("Failed to fetch air quality");
+        setError("Failed to fetch data");
         console.error("Error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    // Initial data fetch
     fetchData();
 
-    // Set up interval to update current time every second
+    // Set up interval to update current time (HomeClient only)
     const timeInterval = setInterval(() => {
       setCurrentTime(moment().format("ddd D MMM HH:mm:ss"));
     }, 1000);
 
-    // Cleanup function
     return () => {
       clearInterval(timeInterval);
       manager.destroy();
     };
-  }, [manager]);
+  }, [manager]); // Empty dependency array ensures it runs only on mount
+
+  // 2 Main initialization effect
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // setLoading(true);
+        // Fetch and update all devices
+        await manager.refreshAllDevices();
+        const updatedDevices = manager.getDevices();
+        setDevices(updatedDevices); // Sync React state with DeviceManager
+      } catch (err) {
+        setError("Failed to fetch data");
+        console.error("Error:", err);
+      } finally {
+        // setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      manager.destroy();
+    };
+  }, [manager]); // Empty dependency array ensures it runs only on mount
 
   // ========== EVENT HANDLERS ========== ** TAKA **
   

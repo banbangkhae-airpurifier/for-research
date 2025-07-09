@@ -76,6 +76,7 @@ export default function DevicesClient() {
         initialPowerStates[device.id] = device.status === "on";
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ========== EVENT HANDLERS ========== ** TAKA **

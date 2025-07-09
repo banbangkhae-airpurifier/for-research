@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { interval, Subscription } from 'rxjs';
 import { Device } from "./device";
 
@@ -52,7 +53,7 @@ export class DeviceManager {
       });
   }
 
-  // Fetch AQI / PM2.5 from OpenWeather
+  // Fetch AQI / P` M2.5 from OpenWeather
   async fetchAirQuality(): Promise<void> {
     const url = 'https://api.openweathermap.org/data/2.5/air_pollution?lat=13.7563&lon=100.5018&appid=9a65a66ea74d1d1afea8c8325a52f734';
     // const url = ' http://localhost:6969/api/purple';
