@@ -21,9 +21,7 @@ export default function HomeClient() {
   
   // Device State
   const [devices, setDevices] = useState<Device[]>(devicesData);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
-  
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
   // UI State
   const [currentTime, setCurrentTime] = useState(
     moment().format("ddd D MMM HH:mm:ss")
@@ -35,7 +33,7 @@ export default function HomeClient() {
   // ========== COMPUTED VALUES ==========
   
   const isOn = selectedDevice 
-    ? (devicePower[selectedDevice.id] ?? selectedDevice.status === "on") 
+    ? (selectedDevice.status === "on") 
     : false;
 
   // ========== EFFECTS ==========
@@ -87,6 +85,15 @@ export default function HomeClient() {
   
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
+
+    setDevices((prevDevices) =>
+      prevDevices.map((device) =>
+        device.id === selectedDevice.id
+          ? { ...device, status: isOn ? "off" : "on" }
+          : device
+      )
+    );
+    selectedDevice.status = isOn ? "off" : "on";
     
     try {
       // Toggle device power through the manager
@@ -105,19 +112,9 @@ export default function HomeClient() {
       setSelectedDevice(updatedDevice || selectedDevice);
 
       // Update the devices array with the new status
-      setDevices((prevDevices) =>
-        prevDevices.map((device) =>
-          device.id === selectedDevice.id
-            ? { ...device, status: isOn ? "off" : "on" }
-            : device
-        )
-      );
 
-      // Update the device power state
-      setDevicePower((prev) => ({
-        ...prev,
-        [selectedDevice.id]: selectedDevice.status === "on",
-      }));
+
+
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
@@ -229,7 +226,6 @@ export default function HomeClient() {
         device={selectedDevice}
         isOpen={!!selectedDevice}
         onClose={handleCloseDeviceDetail}
-        devicePower={devicePower}
         onTogglePower={handleTogglePower}
       />
     </div>

@@ -22,7 +22,6 @@ export default function DevicesClient() {
   // Device State
   const [devices, setDevices] = useState<Device[]>(devicesData);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [devicePower, setDevicePower] = useState<{ [id: string]: boolean }>({});
   
   // Control Panel State
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
@@ -33,7 +32,7 @@ export default function DevicesClient() {
   // ========== COMPUTED VALUES ==========
   
   const isOn = selectedDevice
-    ? devicePower[selectedDevice.id] ?? selectedDevice.status === "on"
+    ? selectedDevice.status === "on"
     : false;
 
   // ========== EFFECTS ==========
@@ -63,29 +62,19 @@ export default function DevicesClient() {
     };
   }, [manager]);
 
-  // Selected device power state sync
-  useEffect(() => {
-    if (selectedDevice) {
-      setDevicePower((prev) => ({
-        ...prev,
-        [selectedDevice.id]: selectedDevice.status === "on",
-      }));
-    }
-  }, [selectedDevice]);
 
   // Initialize device states ** TAKA **
   useEffect(() => {
     if (devices.length > 0) {
       const firstDevice = devices[0];
       setGlobalMode(firstDevice.mode);
-      setGlobalFanLevel(firstDevice.fanSpeed as FanLevel);
+      setGlobalFanLevel(firstDevice.fanLevel as FanLevel);
       setGlobalPower(firstDevice.status === "on");
 
       const initialPowerStates: { [id: string]: boolean } = {};
       devices.forEach((device) => {
         initialPowerStates[device.id] = device.status === "on";
       });
-      setDevicePower(initialPowerStates);
     }
   }, []);
 
@@ -93,11 +82,6 @@ export default function DevicesClient() {
   
   const handleTogglePower = () => {
     if (!selectedDevice) return;
-    
-    setDevicePower((prev) => ({
-      ...prev,
-      [selectedDevice.id]: !isOn,
-    }));
     
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
@@ -114,11 +98,9 @@ export default function DevicesClient() {
 
   const handleGlobalModeChange = (mode: Device["mode"]) => {
     setGlobalMode(mode);
-    const newDevicePowerState: { [id: string]: boolean } = {};
 
     setDevices((prevDevices) =>
       prevDevices.map((device) => {
-        if (mode === "auto") newDevicePowerState[device.id] = true;
         return {
           ...device,
           mode,
@@ -126,8 +108,6 @@ export default function DevicesClient() {
         };
       })
     );
-
-    if (mode === "auto") setDevicePower(newDevicePowerState);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
@@ -142,11 +122,9 @@ export default function DevicesClient() {
     setGlobalFanLevel(level);
     const shouldBeOn = level !== "off";
     setGlobalPower(shouldBeOn);
-    const newDevicePowerState: { [id: string]: boolean } = {};
 
     setDevices((prevDevices) =>
       prevDevices.map((device) => {
-        newDevicePowerState[device.id] = shouldBeOn;
         return {
           ...device,
           fanSpeed: level,
@@ -155,7 +133,6 @@ export default function DevicesClient() {
       })
     );
     
-    setDevicePower(newDevicePowerState);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
@@ -376,7 +353,6 @@ export default function DevicesClient() {
         device={selectedDevice}
         isOpen={!!selectedDevice}
         onClose={handleCloseDeviceDetail}
-        devicePower={devicePower}
         onTogglePower={handleTogglePower}
       />
     </div>
