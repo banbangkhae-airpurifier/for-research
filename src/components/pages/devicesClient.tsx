@@ -25,7 +25,7 @@ export default function DevicesClient() {
   
   // Control Panel State
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
-  const [globalMode, setGlobalMode] = useState<Device["mode"]>("manual");
+  const [globalMode, setGlobalMode] = useState<Device["mode"]>(devices[0]?.mode || "auto");
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off");
   const [, setGlobalPower] = useState(false);
 
@@ -39,9 +39,15 @@ export default function DevicesClient() {
   // ========== EFFECTS ==========
 
   // Update device manager when devices change
+// When devices change, update manager
   useEffect(() => {
     manager.setDevices(devices);
   }, [devices, manager]);
+
+  // When manager changes devices, update React state
+  useEffect(() => {
+    setDevices(manager.getDevices());
+  }, [manager]);
   
   // Air quality data fetching effect
   useEffect(() => {
@@ -72,12 +78,15 @@ export default function DevicesClient() {
   // Initialize device states ** TAKA **
   useEffect(() => {
     const fetchData = async () => {
+      console.log("Refreshing devices...");
       try {
         // setLoading(true);
         // Fetch and update all devices
         await manager.refreshAllDevices();
         const updatedDevices = manager.getDevices();
         setDevices(updatedDevices); // Sync React state with DeviceManager
+        setGlobalMode(updatedDevices[0]?.mode || "auto");
+        setGlobalFanLevel((updatedDevices[0]?.fanLevel as FanLevel) || "off");
       } catch (err) {
         setError("Failed to fetch data");
         console.error("Error:", err);
@@ -132,18 +141,16 @@ export default function DevicesClient() {
     }
   };
 
-  const handleGlobalModeChange = (mode: Device["mode"]) => {
+  const handleGlobalModeChange = async (mode: Device["mode"]) => {
     setGlobalMode(mode);
 
-    setDevices((prevDevices) =>
-      prevDevices.map((device) => {
-        return {
-          ...device,
-          mode,
-          status: mode === "auto" ? "on" : device.status,
-        };
-      })
-    );
+  const newDevices = devices.map((device) => ({
+    ...device,
+    mode,
+    status: mode === "auto" ? "on" : device.status,
+  }));
+  setDevices(newDevices);
+  manager.setDevices(newDevices);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
@@ -152,32 +159,48 @@ export default function DevicesClient() {
           : null
       );
     }
+
+    const switchToAutoMode = mode === "auto";
+    await manager.setAutoMode(switchToAutoMode);
+
+    await manager.refreshAllDevices();
+    const updatedDevices = manager.getDevices();
+    setDevices(updatedDevices); // Sync React state with DeviceManager
+
   };
 
-  const handleGlobalFanLevel = (level: FanLevel) => {
-    setGlobalFanLevel(level);
-    const shouldBeOn = level !== "off";
-    setGlobalPower(shouldBeOn);
+const handleGlobalFanLevel = (level: FanLevel) => {
+  setGlobalFanLevel(level);
+  const shouldBeOn = level !== "off";
+  setGlobalPower(shouldBeOn);
 
-    setDevices((prevDevices) =>
-      prevDevices.map((device) => {
-        return {
-          ...device,
-          fanSpeed: level,
-          status: shouldBeOn ? "on" : "off",
-        };
-      })
+  // Create the new devices array
+  const newDevices = devices.map((device) => ({
+    ...device,
+    fanLevel: level,
+    status: shouldBeOn ? "on" : "off",
+  }));
+
+  // Update React state and manager with the new array
+  setDevices(newDevices);
+  manager.setDevices(newDevices);
+
+  // Now loop over the new array
+  newDevices.forEach((device) => {
+    manager.setFanLevel(device, level);
+  });
+
+  // Optionally sync React state with manager again
+  setDevices(manager.getDevices());
+
+  if (selectedDevice) {
+    setSelectedDevice((prev) =>
+      prev
+        ? { ...prev, fanLevel: level, status: shouldBeOn ? "on" : "off" }
+        : null
     );
-    
-
-    if (selectedDevice) {
-      setSelectedDevice((prev) =>
-        prev
-          ? { ...prev, fanSpeed: level, status: shouldBeOn ? "on" : "off" }
-          : null
-      );
-    }
-  };
+  }
+};
 
   const handleCloseDeviceDetail = () => {
     setSelectedDevice(null);
@@ -188,7 +211,7 @@ export default function DevicesClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleControlPanelToggle = () => {
+  const handleControlPanelToggle = async () => {
     setControlPanelOpen(!controlPanelOpen);
   };
 
