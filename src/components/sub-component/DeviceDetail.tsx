@@ -12,13 +12,14 @@ interface DeviceDetailProps {
   isOpen: boolean
   onClose: () => void
   onTogglePower: (deviceId: string) => void
+  devicePower: boolean
 }
 
-export default function DeviceDetail({ device, isOpen, onClose, onTogglePower }: DeviceDetailProps) {
+export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, devicePower }: DeviceDetailProps) {
   if (!device) return null
 
   // const isOn = devicePower[device.entityId] ?? device.status === "on"
-  const isOn = device.status === "on"
+  const isOn = devicePower
 
 
   const getPM25GaugeColor = (aqi: number) => {

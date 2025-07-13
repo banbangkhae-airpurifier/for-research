@@ -25,9 +25,10 @@ export default function DevicesClient() {
   
   // Control Panel State
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
-  const [globalMode, setGlobalMode] = useState<Device["mode"]>(devices[0]?.mode || "auto");
+  const [globalMode, setGlobalMode] = useState<Device["mode"]>(devices[3]?.mode || "auto");
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off");
   const [, setGlobalPower] = useState(false);
+  const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
 
   // ========== COMPUTED VALUES ==========
   
@@ -86,7 +87,7 @@ export default function DevicesClient() {
         const updatedDevices = manager.getDevices();
         setDevices(updatedDevices); // Sync React state with DeviceManager
         setGlobalMode(updatedDevices[0]?.mode || "auto");
-        setGlobalFanLevel((updatedDevices[0]?.fanLevel as FanLevel) || "off");
+        setGlobalFanLevel((updatedDevices[2]?.fanLevel as FanLevel) || "off");
       } catch (err) {
         setError("Failed to fetch data");
         console.error("Error:", err);
@@ -107,15 +108,18 @@ export default function DevicesClient() {
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
 
+    setDevicePower(!isOn);
+
+
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
-          ? { ...device, status: isOn ? "off" : "on" }
+          ? { ...device, status: isOn ? "off" : "on"}
           : device
       )
     );
-    selectedDevice.status = isOn ? "off" : "on";
     
+
     try {
       // Toggle device power through the manager
       await manager.toggleDevicePower(selectedDevice);
@@ -133,8 +137,6 @@ export default function DevicesClient() {
       setSelectedDevice(updatedDevice || selectedDevice);
 
       // Update the devices array with the new status
-
-
 
     } catch (err) {
       console.error("Error toggling device power:", err);
@@ -175,7 +177,7 @@ const handleGlobalFanLevel = (level: FanLevel) => {
   setGlobalPower(shouldBeOn);
 
   // Create the new devices array
-  const newDevices = devices.map((device) => ({
+  const newDevices =  devices.map((device) => ({
     ...device,
     fanLevel: level,
     status: shouldBeOn ? "on" : "off",
@@ -208,6 +210,7 @@ const handleGlobalFanLevel = (level: FanLevel) => {
 
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
+    setDevicePower(device.status === "on");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -413,6 +416,7 @@ const handleGlobalFanLevel = (level: FanLevel) => {
         isOpen={!!selectedDevice}
         onClose={handleCloseDeviceDetail}
         onTogglePower={handleTogglePower}
+        devicePower={devicePower}
       />
     </div>
   );

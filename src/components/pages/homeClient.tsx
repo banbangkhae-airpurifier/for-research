@@ -22,6 +22,7 @@ export default function HomeClient() {
   // Device State
   const [devices, setDevices] = useState<Device[]>(devicesData);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
+  const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
   // UI State
   const [currentTime, setCurrentTime] = useState(
     moment().format("ddd D MMM HH:mm:ss")
@@ -105,15 +106,18 @@ export default function HomeClient() {
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
 
+    setDevicePower(!isOn);
+
+
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
-          ? { ...device, status: isOn ? "off" : "on" }
+          ? { ...device, status: isOn ? "off" : "on"}
           : device
       )
     );
-    selectedDevice.status = isOn ? "off" : "on";
     
+
     try {
       // Toggle device power through the manager
       await manager.toggleDevicePower(selectedDevice);
@@ -132,8 +136,6 @@ export default function HomeClient() {
 
       // Update the devices array with the new status
 
-
-
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
@@ -145,6 +147,8 @@ export default function HomeClient() {
 
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
+    setDevicePower(device.status === "on");
+    console.log(device)
   };
 
 
@@ -246,6 +250,7 @@ export default function HomeClient() {
         isOpen={!!selectedDevice}
         onClose={handleCloseDeviceDetail}
         onTogglePower={handleTogglePower}
+        devicePower={devicePower}
       />
     </div>
   );
