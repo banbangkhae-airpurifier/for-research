@@ -12,7 +12,7 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user }) {
       const allowedEmails = ["thanyapisit.lim@gmail.com", "asd"]
       if (user.email && allowedEmails.includes(user.email)) {
         return true // ผ่าน!
