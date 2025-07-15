@@ -122,17 +122,17 @@ export default function HomeClient() {
       // Toggle device power through the manager
       await manager.toggleDevicePower(selectedDevice);
       
-      // Refresh device state and fetch updated data
-      await manager.refreshDeviceState(selectedDevice);
-      await manager.getAQI(selectedDevice);
-      await manager.getPM25(selectedDevice);
-      await manager.getFilterLife(selectedDevice);
+      // // Refresh device state and fetch updated data
+      // await manager.refreshDeviceState(selectedDevice);
+      // await manager.getAQI(selectedDevice);
+      // await manager.getPM25(selectedDevice);
+      // await manager.getFilterLife(selectedDevice);
 
-      // Get the updated device data
-      const updatedDevice = manager.getDeviceById(selectedDevice.id);
+      // // Get the updated device data
+      // const updatedDevice = manager.getDeviceById(selectedDevice.id);
 
       // Update the selected device with new data
-      setSelectedDevice(updatedDevice || selectedDevice);
+      // setSelectedDevice(updatedDevice || selectedDevice);
 
       // Update the devices array with the new status
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { interval, Subscription } from 'rxjs';
+import {  Subscription } from 'rxjs';
 import { Device } from "./device";
 
 // Interfaces for type safety
@@ -34,24 +34,26 @@ interface DeviceAttributes {
   [key: string]: any;
 }
 
-export type FanLevel = "off" | "low" | "mid" | "high" | "turbo"
+export type FanLevel = "off" | "low" | "mid" | "high" | "turbo" | "hi";
 
 export class DeviceManager {
-  private habaseURL: string = 'https://adxc0rmwdqhadwgtuuut0qvbi9luftvn.ui.nabu.casa'; // Replace with actual URL
+  // private habaseURL: string = 'https://adxc0rmwdqhadwgtuuut0qvbi9luftvn.ui.nabu.casa'; // Replace with actual URL
+    private habaseURL: string = 'http://homeassistant.local:8123'; // Replace with actual URL
+
   private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
   airQuality: AirQuality | null = null;
   private devices: Device[] = [];
   private refreshTimer: Subscription | null = null;
 
-  // Auto Refresh Timer
-  private startAutoRefresh(): void {
-    this.refreshTimer = interval(30000) // 30 seconds
-      .subscribe(() => {
-        console.log('🔁 Auto-refresh triggered');
-        this.fetchAirQuality();
-        this.refreshAllDevices();
-      });
-  }
+  // // Auto Refresh Timer
+  // private startAutoRefresh(): void {
+  //   this.refreshTimer = interval(30000) // 30 seconds
+  //     .subscribe(() => {
+  //       console.log('🔁 Auto-refresh triggered');
+  //       this.fetchAirQuality();
+  //       this.refreshAllDevices();
+  //     });
+  // }
 
   // Fetch AQI / P` M2.5 from OpenWeather
   async fetchAirQuality(): Promise<void> {
@@ -82,6 +84,34 @@ export class DeviceManager {
   async toggleDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
     const service = device.status === 'on' ? 'turn_off' : 'turn_on';
+    console.log(service)
+    const url = `${this.habaseURL}/api/services/${domain}/${service}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.hatoken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ entity_id: device.entityId })
+      });
+
+      if (response.ok) {
+        device.status = device.status === 'on' ? 'off' : 'on';
+        console.log(`✅ Power toggled: ${device.status.toUpperCase()}`);
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Power toggle failed:', error);
+    }
+  }
+
+  async offDevicePower(device: Device): Promise<void> {
+    const domain = 'fan';
+    const service = "turn_off"
+    console.log(service)
     const url = `${this.habaseURL}/api/services/${domain}/${service}`;
 
     try {
@@ -116,8 +146,9 @@ export class DeviceManager {
     if (deviceState.state) {
       device.status = deviceState.state;
       device.percentage = deviceState.attributes.percentage || 0;
+      console.log(`🔄 Device state refreshed: ${device.percentage} is now ${device.status}`);
 
-      if (device.percentage === 0) {
+      if (device.percentage === 0 || device.status === 'off') {
         device.fanLevel = 'off';
       } else if (device.percentage < 34) {
         device.fanLevel = 'low';
@@ -223,20 +254,26 @@ export class DeviceManager {
     });
   }
 
-  // Set fan level
-  async setFanLevel(device: Device, level: 'off' | 'low' | 'mid' | 'high' | 'turbo'): Promise<void> {
-    const url = `${this.habaseURL}/api/services/input_select/select_option`;
-    const option = level.toUpperCase();
-    const payload = {
-      entity_id: 'input_select.air_purifier_manual_control',
-      option
-    };
+  async setFanLevel(device: Device, level: 'off' | 'low' | 'mid' | 'high' | 'turbo' | 'hi'): Promise<void> {
+    if (level === 'off') {
+      await this.offDevicePower(device); // Turn off the device
+      device.fanLevel = 'off';
+      device.percentage = 0;
+      console.log(`✅ Device ${device.model} turned OFF`);
+    } else {
+      const url = `${this.habaseURL}/api/services/input_select/select_option`;
+      const option = level.toUpperCase();
+      const payload = {
+        entity_id: 'input_select.air_purifier_manual_control',
+        option
+      };
 
-    await this.sendRequest(url, payload, () => {
-      device.fanLevel = level;
-      device.percentage = this.getPercentageForLevel(level);
-      console.log(`Set fan level to ${option}`);
-    });
+      await this.sendRequest(url, payload, () => {
+        device.fanLevel = level;
+        device.percentage = this.getPercentageForLevel(level);
+        console.log(`✅ Set fan level to ${option}`);
+      });
+    }
   }
 
   // Helper to map fan level to percentage

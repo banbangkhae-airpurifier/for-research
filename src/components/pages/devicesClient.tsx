@@ -25,8 +25,8 @@ export default function DevicesClient() {
   
   // Control Panel State
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
-  const [globalMode, setGlobalMode] = useState<Device["mode"]>(devices[3]?.mode || "auto");
-  const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("off");
+  const [globalMode, setGlobalMode] = useState<Device["mode"]>("auto");
+  const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("hi");
   const [, setGlobalPower] = useState(false);
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
 
@@ -67,10 +67,10 @@ export default function DevicesClient() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    // const interval = setInterval(fetchData, 30000);
 
     return () => {
-      clearInterval(interval);
+      // clearInterval(interval);
       manager.destroy();
     };
   }, [manager]);
@@ -87,7 +87,7 @@ export default function DevicesClient() {
         const updatedDevices = manager.getDevices();
         setDevices(updatedDevices); // Sync React state with DeviceManager
         setGlobalMode(updatedDevices[0]?.mode || "auto");
-        setGlobalFanLevel((updatedDevices[2]?.fanLevel as FanLevel) || "off");
+        setGlobalFanLevel((updatedDevices[0]?.fanLevel as FanLevel) || "off");
       } catch (err) {
         setError("Failed to fetch data");
         console.error("Error:", err);
@@ -144,7 +144,14 @@ export default function DevicesClient() {
   };
 
   const handleGlobalModeChange = async (mode: Device["mode"]) => {
+    
     setGlobalMode(mode);
+
+    if (mode === "manual") {
+      devices.forEach(async (device) => {
+        await manager.setFanLevel(device, "low");
+      });
+    };
 
   const newDevices = devices.map((device) => ({
     ...device,
@@ -171,7 +178,9 @@ export default function DevicesClient() {
 
   };
 
-const handleGlobalFanLevel = (level: FanLevel) => {
+const handleGlobalFanLevel = async (level: FanLevel) => {
+
+
   setGlobalFanLevel(level);
   const shouldBeOn = level !== "off";
   setGlobalPower(shouldBeOn);
@@ -180,7 +189,7 @@ const handleGlobalFanLevel = (level: FanLevel) => {
   const newDevices =  devices.map((device) => ({
     ...device,
     fanLevel: level,
-    status: shouldBeOn ? "on" : "off",
+    // status: shouldBeOn ? "on" : "off",
   }));
 
   // Update React state and manager with the new array
@@ -188,9 +197,23 @@ const handleGlobalFanLevel = (level: FanLevel) => {
   manager.setDevices(newDevices);
 
   // Now loop over the new array
-  newDevices.forEach((device) => {
-    manager.setFanLevel(device, level);
+  newDevices.forEach( async (device) => {
+    // if (level === "off" && device.status === "on") {
+    //   await manager.toggleDevicePower(device)
+    // }
+    await manager.setFanLevel(device, level);
   });
+
+    const newDevices2 =  devices.map((device) => ({
+    ...device,
+    fanLevel: level,
+    status: shouldBeOn ? "on" : "off",
+  }));
+
+  setDevices(newDevices2);
+  manager.setDevices(newDevices2);
+
+
 
   // Optionally sync React state with manager again
   setDevices(manager.getDevices());
