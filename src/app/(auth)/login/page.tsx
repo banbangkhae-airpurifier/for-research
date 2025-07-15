@@ -13,7 +13,7 @@ import DeviceManager from "@/lib/deviceManager"
 export default function LoginPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isAQILoading, setIsAQILoading] = useState(true)
+  const [isAQILoading, setIsAQILoading] = useState(true) 
 
   useEffect(() => {
     const manager = new DeviceManager()
@@ -57,15 +57,6 @@ export default function LoginPage() {
       setIsLoading(false)
     }
   }
-
-  const getPM25GaugeColor = (aqi: number) => {
-    if (aqi < 51) return "#4ADE80"
-    if (aqi < 101) return "#FBBF24"
-    if (aqi < 151) return "#FB923C"
-    if (aqi < 201) return "#F87171"
-    return "#8B5CF6"
-  }
-
   return (
     <div
       className={`min-h-screen flex items-center justify-center p-4 transition-all duration-1000 ${getPM25GradientClassHex(airQuality?.aqi)}`}
