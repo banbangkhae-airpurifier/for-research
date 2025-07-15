@@ -86,45 +86,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <Card>
-              <CardContent className="p-4 sm:p-6 md:p-8">
-                <div className="flex items-center justify-center mb-4 sm:mb-6">
-                  <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40">
-                    {/* Gauge background */}
-                    <svg width="100%" height="100%" viewBox="0 0 128 128" className="absolute top-0 left-0">
-                      <circle cx="64" cy="64" r="56" fill="none" stroke="#e5e7eb" strokeWidth="16" />
-                    </svg>
 
-                    {/* Gauge value */}
-                    <svg width="100%" height="100%" viewBox="0 0 128 128" className="absolute top-0 left-0">
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        fill="none"
-                        stroke={getPM25GaugeColor(airQuality?.aqi)}
-                        strokeWidth="16"
-                        strokeDasharray={2 * Math.PI * 56}
-                        strokeDashoffset={(1 - Math.max(0, Math.min(1, airQuality?.aqi / 300))) * 2 * Math.PI * 56}
-                        style={{ transition: "stroke-dashoffset 0.5s" }}
-                        strokeLinecap="round"
-                        transform="rotate(-90 64 64)"
-                      />
-                    </svg>
-
-                    {/* AQI Value */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">{airQuality?.aqi}</span>
-                      <span className="text-xs sm:text-sm text-gray-500">AQI</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600">AQI: {airQuality?.aqi}</span>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Sign In Button */}
             <Button
