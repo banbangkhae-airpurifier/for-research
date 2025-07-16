@@ -14,10 +14,10 @@ import DeviceManager from "@/lib/deviceManager"
 export default function OTPPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isAQILoading, setIsAQILoading] = useState(true)
+  const [, setIsAQILoading] = useState(true)
   const [otp, setOtp] = useState("")
   const [countdown, setCountdown] = useState(0)
-  const [canResend, setCanResend] = useState(true)
+  const [, setCanResend] = useState(true)
   const [error, setError] = useState("")
   const router = useRouter()
   const { data: session } = useSession()

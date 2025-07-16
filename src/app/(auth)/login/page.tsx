@@ -13,7 +13,7 @@ import DeviceManager from "@/lib/deviceManager"
 export default function LoginPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isAQILoading, setIsAQILoading] = useState(true) 
+  const [, setIsAQILoading] = useState(true) 
 
   useEffect(() => {
     const manager = new DeviceManager()

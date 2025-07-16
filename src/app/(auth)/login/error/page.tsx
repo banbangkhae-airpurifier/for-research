@@ -12,7 +12,7 @@ import DeviceManager from "@/lib/deviceManager"
 
 export default function ErrorPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
-  const [isAQILoading, setIsAQILoading] = useState(true)
+  const [, setIsAQILoading] = useState(true)
   const searchParams = useSearchParams()
   const error = searchParams.get("error")
 
@@ -32,14 +32,6 @@ export default function ErrorPage() {
     fetchAQI()
     return () => manager.destroy()
   }, [])
-
-  const getPM25GaugeColor = (aqi: number) => {
-    if (aqi < 51) return "#4ADE80"
-    if (aqi < 101) return "#FBBF24"
-    if (aqi < 151) return "#FB923C"
-    if (aqi < 201) return "#F87171"
-    return "#8B5CF6"
-  }
 
   return (
     <div
