@@ -1,6 +1,5 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import jwt from "jsonwebtoken"
 
 const handler = NextAuth({
     providers: [
@@ -19,27 +18,25 @@ const handler = NextAuth({
     callbacks: {
         async signIn({ user }) {
             const allowedEmails = ["thanyapisit.lim@g.swu.ac.th"]
-            if (user.email && allowedEmails.includes(user.email)) {
-                return true // ผ่าน!
-            }
-            return false // ไม่ผ่าน!
+            return user.email && allowedEmails.includes(user.email)
         },
 
         async jwt({ token, user }) {
             if (user) {
-                const myToken = jwt.sign(
-                    { email: user.email, name: user.name },
-                    process.env.JWT_SECRET!,
-                    { expiresIn: "1h" }
-                )
-                token.myJwt = myToken
+                token.email = user.email
+                token.verified = false // ให้ผ่าน Google ก่อน → OTP ยังไม่ผ่าน
             }
             return token
         },
 
         async session({ session, token }) {
-            session.myJwt = token.myJwt
+            session.email = token.email
+            session.verified = token.verified
             return session
+        },
+        async redirect({ baseUrl }) {
+            // หลังล็อกอิน ให้ไป /otp-login เสมอ
+            return `${baseUrl}/otp-login`;
         },
     },
 })

@@ -12,3 +12,18 @@ declare module "next-auth/jwt" {
     myJwt?: string
   }
 }
+
+declare module "next-auth" {
+  interface Session {
+    user?: DefaultSession["user"] & {
+      id?: string
+    }
+    email?: string | null
+    verified?: boolean
+  }
+
+  interface JWT {
+    email?: string | null
+    verified?: boolean
+  }
+}
