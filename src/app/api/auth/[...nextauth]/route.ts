@@ -14,6 +14,10 @@ const handler = NextAuth({
         signIn: "/login",
         error: "/login/error",
     },
+    session: {
+        strategy: "jwt",
+        maxAge: 60 * 60,
+    },
 
     callbacks: {
         async signIn({ user }) {
@@ -36,7 +40,7 @@ const handler = NextAuth({
         },
         async redirect({ baseUrl }) {
             // หลังล็อกอิน ให้ไป /otp-login เสมอ
-            return `${baseUrl}/otp-login`;
+            return `${baseUrl}/login/otp-login`;
         },
     },
 })
