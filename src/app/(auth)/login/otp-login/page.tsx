@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { Loader2, Wind } from "lucide-react"
+import { ArrowLeft, Loader2, Wind } from "lucide-react"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
 import type { AirQuality } from "@/lib/deviceManager"
 import DeviceManager from "@/lib/deviceManager"
@@ -88,6 +88,9 @@ export default function OTPPage() {
       setIsLoading(false)
     }
   }
+  const handleBack = () => {
+    router.push("/login")
+  }
 
   return (
     <div
@@ -97,6 +100,11 @@ export default function OTPPage() {
       <div className="relative z-10 w-full max-w-md">
         <Card className="backdrop-blur-md bg-white/90 border-white/20 shadow-2xl p-4 mx-10">
           <CardHeader className="text-center space-y-4">
+            <div className="flex justify-start">
+              <Button variant="ghost" size="sm" onClick={handleBack} className="p-2 hover:bg-black/10">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </div>
             <div className="mx-auto w-16 h-16 bg-black rounded-full flex items-center justify-center">
               <Wind className="w-8 h-8 text-white" />
             </div>
