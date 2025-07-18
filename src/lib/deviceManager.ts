@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {  Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { Device } from "./device";
 
 // Interfaces for type safety
@@ -37,29 +37,16 @@ interface DeviceAttributes {
 export type FanLevel = "off" | "low" | "mid" | "high" | "turbo" | "hi";
 
 export class DeviceManager {
-  // private habaseURL: string = 'https://adxc0rmwdqhadwgtuuut0qvbi9luftvn.ui.nabu.casa'; // Replace with actual URL
-    private habaseURL: string = 'http://homeassistant.local:8123'; // Replace with actual URL
-
+  private habaseURL: string = 'http://homeassistant.local:8123'; // Replace with actual URL
   private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
   airQuality: AirQuality | null = null;
   private devices: Device[] = [];
   private refreshTimer: Subscription | null = null;
+  private STORAGE_KEY = 'device_manager_state';
 
-  // // Auto Refresh Timer
-  // private startAutoRefresh(): void {
-  //   this.refreshTimer = interval(30000) // 30 seconds
-  //     .subscribe(() => {
-  //       console.log('🔁 Auto-refresh triggered');
-  //       this.fetchAirQuality();
-  //       this.refreshAllDevices();
-  //     });
-  // }
-
-  // Fetch AQI / P` M2.5 from OpenWeather
+  // Fetch AQI / PM2.5 from OpenWeather
   async fetchAirQuality(): Promise<void> {
     const url = 'https://api.openweathermap.org/data/2.5/air_pollution?lat=13.7563&lon=100.5018&appid=9a65a66ea74d1d1afea8c8325a52f734';
-    // const url = ' http://localhost:6969/api/purple';
-   
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -84,7 +71,7 @@ export class DeviceManager {
   async toggleDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
     const service = device.status === 'on' ? 'turn_off' : 'turn_on';
-    console.log(service)
+    console.log(service);
     const url = `${this.habaseURL}/api/services/${domain}/${service}`;
 
     try {
@@ -110,8 +97,8 @@ export class DeviceManager {
 
   async offDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
-    const service = "turn_off"
-    console.log(service)
+    const service = "turn_off";
+    console.log(service);
     const url = `${this.habaseURL}/api/services/${domain}/${service}`;
 
     try {
@@ -136,57 +123,77 @@ export class DeviceManager {
   }
 
   // Refresh device state
-  async refreshDeviceState(device: Device): Promise<void> {
-    // Get device state
-    const [deviceState, autoModeState] = await Promise.all([
-      this.getState(device.entityId),
-      this.getState('input_boolean.auto_air_purifier')
-    ]);
+  async refreshDeviceState(device: Device, signal?: AbortSignal): Promise<void> {
+    try {
+      const [deviceState, autoModeState] = await Promise.all([
+        this.getState(device.entityId, signal),
+        this.getState('input_boolean.auto_air_purifier', signal)
+      ]);
 
-    if (deviceState.state) {
-      device.status = deviceState.state;
-      device.percentage = deviceState.attributes.percentage || 0;
-      console.log(`🔄 Device state refreshed: ${device.percentage} is now ${device.status}`);
+      if (deviceState.state) {
+        device.status = deviceState.state;
+        device.percentage = deviceState.attributes.percentage || 0;
+        console.log(`🔄 Device state refreshed: ${device.percentage} is now ${device.status}`);
 
-      if (device.percentage === 0 || device.status === 'off') {
-        device.fanLevel = 'off';
-      } else if (device.percentage < 34) {
-        device.fanLevel = 'low';
-      } else if (device.percentage < 67) {
-        device.fanLevel = 'mid';
-      } else if (device.percentage < 100) {
-        device.fanLevel = 'high';
-      } else {
-        device.fanLevel = 'turbo';
+        if (device.percentage === 0 || device.status === 'off') {
+          device.fanLevel = 'off';
+        } else if (device.percentage < 34) {
+          device.fanLevel = 'low';
+        } else if (device.percentage < 67) {
+          device.fanLevel = 'mid';
+        } else if (device.percentage < 100) {
+          device.fanLevel = 'high';
+        } else {
+          device.fanLevel = 'turbo';
+        }
       }
-    }
 
-    if (autoModeState.state) {
-      device.mode = autoModeState.state === 'on' ? 'auto' : 'manual';
+      if (autoModeState.state) {
+        device.mode = autoModeState.state === 'on' ? 'auto' : 'manual';
+      }
+      // device.status = "off";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ Device state refresh aborted for device: ${device.model}`);
+        return;
+      }
+      console.error(`❌ Device state refresh failed for ${device.model}:`, error);
     }
-    // device.status = "on"
   }
 
   // Refresh all devices
-  async refreshAllDevices(): Promise<void> {
-    for (const device of this.devices) {
-      await Promise.all([
-        this.refreshDeviceState(device),
-        this.getFilterLife(device),
-        this.getAQI(device),
-        this.getPM25(device)
-      ]);
-    }
+  async refreshAllDevices(signal?: AbortSignal): Promise<void> {
+    console.log('🔄 Refreshing all devices');
+    const promises = this.devices.map(device =>
+      Promise.all([
+        this.refreshDeviceState(device, signal),
+        this.getFilterLife(device, signal),
+        this.getAQI(device, signal),
+        this.getPM25(device, signal)
+      ]).then(() => {
+        console.log(`✅ Refreshed device: ${device.model}`);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.devices));
+      })
+      .catch(error => {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          console.log(`❌ Refresh aborted for device: ${device.model}`);
+          return;
+        }
+        console.error(`❌ Failed to refresh device ${device.model}:`, error);
+      })
+    );
+    await Promise.all(promises);
   }
 
   // Get state
-  private async getState(entity: string): Promise<{ state: string; attributes: DeviceAttributes }> {
+  private async getState(entity: string, signal?: AbortSignal): Promise<{ state: string; attributes: DeviceAttributes }> {
     const url = `${this.habaseURL}/api/states/${entity}`;
 
     try {
       const response = await fetch(url, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${this.hatoken}` }
+        headers: { 'Authorization': `Bearer ${this.hatoken}` },
+        signal
       });
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -197,49 +204,70 @@ export class DeviceManager {
         attributes: json.attributes || {}
       };
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ State fetch aborted for entity: ${entity}`);
+        return { state: '', attributes: {} };
+      }
       console.error('❌ getState error:', error);
       return { state: '', attributes: {} };
     }
   }
 
   // Get filter life
-  async getFilterLife(device: Device): Promise<void> {
-    const { state } = await this.getState(device.filterEntityId);
-    const filterValue = parseInt(state);
-    if (!isNaN(filterValue)) {
-      device.filterLife = filterValue;
-      // console.log(`🔧 Filter life updated: ${filterValue}% for ${device.model}`);
-    } else {
-      // console.error(`❌ Cannot parse filter life from sensor ${device.filterEntityId}`);
+  async getFilterLife(device: Device, signal?: AbortSignal): Promise<void> {
+    try {
+      const { state } = await this.getState(device.filterEntityId, signal);
+      const filterValue = parseInt(state);
+      if (!isNaN(filterValue)) {
+        device.filterLife = filterValue;
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ Filter life fetch aborted for device: ${device.model}`);
+        return;
+      }
+      console.error(`❌ Cannot parse filter life from sensor ${device.filterEntityId}:`, error);
     }
   }
 
   // Get AQI
-  async getAQI(device: Device): Promise<void> {
-    const { state } = await this.getState(device.aqiEntityId);
-    const aqiValue = parseInt(state);
-    if (!isNaN(aqiValue)) {
-      device.aqiValue = aqiValue;
-      console.log(`${device.aqiEntityId}: ${aqiValue}`);
-    } else {
-      // console.error(`❌ Cannot parse aqi from sensor ${device.aqiEntityId}`);
+  async getAQI(device: Device, signal?: AbortSignal): Promise<void> {
+    try {
+      const { state } = await this.getState(device.aqiEntityId, signal);
+      const aqiValue = parseInt(state);
+      if (!isNaN(aqiValue)) {
+        device.aqiValue = aqiValue;
+        console.log(`${device.aqiEntityId}: ${aqiValue}`);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ AQI fetch aborted for device: ${device.model}`);
+        return;
+      }
+      console.error(`❌ Cannot parse aqi from sensor ${device.aqiEntityId}:`, error);
     }
   }
 
   // Get PM2.5
-  async getPM25(device: Device): Promise<void> {
-    const { state } = await this.getState(device.pm25EntityId);
-    const pmValue = parseFloat(state);
-    if (!isNaN(pmValue)) {
-      device.pm25Value = pmValue;
-      console.log(`${device.pm25EntityId}: ${pmValue}`);
-    } else {
-      // console.error(`❌ Cannot parse pm2.5 from sensor ${device.pm25EntityId}`);
+  async getPM25(device: Device, signal?: AbortSignal): Promise<void> {
+    try {
+      const { state } = await this.getState(device.pm25EntityId, signal);
+      const pmValue = parseFloat(state);
+      if (!isNaN(pmValue)) {
+        device.pm25Value = pmValue;
+        console.log(`${device.pm25EntityId}: ${pmValue}`);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ PM2.5 fetch aborted for device: ${device.model}`);
+        return;
+      }
+      console.error(`❌ Cannot parse pm2.5 from sensor ${device.pm25EntityId}:`, error);
     }
   }
 
   // Set auto mode
-  async setAutoMode(enabled: boolean): Promise<void> {
+  async setAutoMode(enabled: boolean, signal?: AbortSignal): Promise<void> {
     const service = enabled ? 'turn_on' : 'turn_off';
     const url = `${this.habaseURL}/api/services/input_boolean/${service}`;
     const payload = { entity_id: 'input_boolean.auto_air_purifier' };
@@ -247,16 +275,16 @@ export class DeviceManager {
     await this.sendRequest(url, payload, async () => {
       console.log(`✅ Auto mode set to ${enabled ? 'ON' : 'OFF'}`);
       const automationID = enabled ? 'auto_on_all_devices' : 'auto_off_all_devices';
-      await this.triggerAutomation(automationID);
+      await this.triggerAutomation(automationID, signal);
 
       // Refresh devices after 5 seconds
       setTimeout(() => this.refreshAllDevices(), 5000);
-    });
+    }, signal);
   }
 
-  async setFanLevel(device: Device, level: 'off' | 'low' | 'mid' | 'high' | 'turbo' | 'hi'): Promise<void> {
+  async setFanLevel(device: Device, level: FanLevel): Promise<void> {
     if (level === 'off') {
-      await this.offDevicePower(device); // Turn off the device
+      await this.offDevicePower(device);
       device.fanLevel = 'off';
       device.percentage = 0;
       console.log(`✅ Device ${device.model} turned OFF`);
@@ -289,7 +317,7 @@ export class DeviceManager {
   }
 
   // Send request
-  private async sendRequest(url: string, payload: any, completion: () => void): Promise<void> {
+  private async sendRequest(url: string, payload: any, completion: () => void, signal?: AbortSignal): Promise<void> {
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -297,7 +325,8 @@ export class DeviceManager {
           'Authorization': `Bearer ${this.hatoken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal
       });
 
       if (response.ok) {
@@ -307,12 +336,16 @@ export class DeviceManager {
         console.error(`Request failed: ${response.status}`);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ Request aborted for URL: ${url}`);
+        return;
+      }
       console.error('Request failed:', error);
     }
   }
 
   // Trigger automation
-  async triggerAutomation(automationID: string): Promise<void> {
+  async triggerAutomation(automationID: string, signal?: AbortSignal): Promise<void> {
     const url = `${this.habaseURL}/api/services/automation/trigger`;
     try {
       const response = await fetch(url, {
@@ -321,7 +354,8 @@ export class DeviceManager {
           'Authorization': `Bearer ${this.hatoken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ entity_id: `automation.${automationID}` })
+        body: JSON.stringify({ entity_id: `automation.${automationID}` }),
+        signal
       });
 
       if (response.ok) {
@@ -330,20 +364,22 @@ export class DeviceManager {
         console.error(`❌ Automation trigger failed with status: ${response.status}`);
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ Automation trigger aborted for: ${automationID}`);
+        return;
+      }
       console.error('❌ Automation trigger failed:', error);
     }
   }
 
-
   public getAirQuality(): AirQuality | null {
-  return this.airQuality;
-}
+    return this.airQuality;
+  }
 
   getDeviceById(id: string | number): Device | undefined {
     return this.devices.find((device) => device.id === id);
   }
 
-  // Initialize devices
   setDevices(devices: Device[]): void {
     this.devices = devices;
   }
@@ -352,7 +388,6 @@ export class DeviceManager {
     return this.devices;
   }
 
-  // Cleanup on destroy
   destroy(): void {
     if (this.refreshTimer) {
       this.refreshTimer.unsubscribe();

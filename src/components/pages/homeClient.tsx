@@ -13,6 +13,7 @@ import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
+  const STORAGE_KEY = 'device_manager_state';
   
   // Air Quality State
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
@@ -20,7 +21,19 @@ export default function HomeClient() {
   const [error, setError] = useState<string | null>(null);
   
   // Device State
-  const [devices, setDevices] = useState<Device[]>(devicesData);
+  const [devices, setDevices] = useState<Device[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        console.log('✅ Loaded devices from localStorage on mount');
+        return JSON.parse(stored);
+      }
+      return devicesData; // Fallback to default data
+    } catch (error) {
+      console.error('❌ Failed to load devices from localStorage:', error);
+      return devicesData;
+    }
+  });
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
   // UI State
@@ -32,31 +45,36 @@ export default function HomeClient() {
   const manager = useState(() => new DeviceManager())[0];
 
   // ========== COMPUTED VALUES ==========
-  
   const isOn = selectedDevice 
     ? (selectedDevice.status === "on") 
     : false;
 
   // ========== EFFECTS ==========
   
-  // Update device manager when devices change
+  // Save devices to localStorage when they change
   useEffect(() => {
-    manager.setDevices(devices);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+      console.log('✅ Saved devices to localStorage');
+      manager.setDevices(devices); // Sync with DeviceManager
+    } catch (error) {
+      console.error('❌ Failed to save devices to localStorage:', error);
+    }
   }, [devices, manager]);
 
-  // ดึงค่า Air Quality มาอัพเดตเมื่อโหลดหน้าเว็บ
+  // Fetch Air Quality and update time
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        // Fetch air quality data
         await manager.fetchAirQuality();
         const data = manager.getAirQuality();
         if (data) {
           setAirQuality(data);
         }
       } catch (err) {
+
         setError("Failed to fetch data");
         console.error("Error:", err);
       } finally {
@@ -66,49 +84,64 @@ export default function HomeClient() {
 
     fetchData();
 
-    // Set up interval to update current time (HomeClient only)
+    // Set up interval to update current time
     const timeInterval = setInterval(() => {
       setCurrentTime(moment().format("ddd D MMM HH:mm:ss"));
     }, 1000);
 
     return () => {
       clearInterval(timeInterval);
+      controller.abort();
       manager.destroy();
     };
   }, [manager]);
 
-  // ดึงค่า Devices มาอัพเดตเมื่อโหลดหน้าเว็บ
+  // Fetch Devices
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
-        // setLoading(true);
-        // Fetch and update all devices
-        await manager.refreshAllDevices();
+        await manager.refreshAllDevices(controller.signal);
         const updatedDevices = manager.getDevices();
         setDevices(updatedDevices); // Sync React state with DeviceManager
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('❌ Device refresh aborted in HomeClient');
+          return;
+        }
         setError("Failed to fetch data");
         console.error("Error:", err);
-      } finally {
-        // setLoading(false);
       }
     };
 
-    fetchData();
+    // Only fetch if localStorage was empty on mount
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      fetchData();
+    } else {
+      console.log('✅ (Home) Using localStorage devices, delaying API fetch by 5 seconds');
+      manager.setDevices(devices); // Ensure manager is synced with localStorage data
+      const timeoutId = setTimeout(() => {
+        fetchData();
+      }, 5000);
+      return () => {
+        clearTimeout(timeoutId);
+        controller.abort();
+        manager.destroy();
+      };
+    }
 
     return () => {
+      controller.abort();
       manager.destroy();
     };
-  }, [manager]);
+  }, []);
 
-  // ========== EVENT HANDLERS ========== ** TAKA **
+  // ========== EVENT HANDLERS ==========
   
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
 
     setDevicePower(!isOn);
-
-
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
@@ -116,26 +149,9 @@ export default function HomeClient() {
           : device
       )
     );
-    
 
     try {
-      // Toggle device power through the manager
       await manager.toggleDevicePower(selectedDevice);
-      
-      // // Refresh device state and fetch updated data
-      // await manager.refreshDeviceState(selectedDevice);
-      // await manager.getAQI(selectedDevice);
-      // await manager.getPM25(selectedDevice);
-      // await manager.getFilterLife(selectedDevice);
-
-      // // Get the updated device data
-      // const updatedDevice = manager.getDeviceById(selectedDevice.id);
-
-      // Update the selected device with new data
-      // setSelectedDevice(updatedDevice || selectedDevice);
-
-      // Update the devices array with the new status
-
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
@@ -148,10 +164,8 @@ export default function HomeClient() {
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
     setDevicePower(device.status === "on");
-    console.log(device)
+    console.log(device);
   };
-
-
 
   // ========== CONDITIONAL RENDERING ==========
   
@@ -171,7 +185,7 @@ export default function HomeClient() {
     );
   }
 
-  // ========== MAIN RENDER ========== //
+  // ========== MAIN RENDER ==========
   
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>

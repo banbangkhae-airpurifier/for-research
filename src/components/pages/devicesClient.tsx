@@ -4,52 +4,58 @@ import { useState, useEffect } from "react";
 import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react";
 import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
-import DeviceManager, { AirQuality } from "@/lib/deviceManager";
-import type { FanLevel } from "@/lib/deviceManager";
+import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
-  
-  // Device Manager Instance
+  const STORAGE_KEY = 'device_manager_state';
   const manager = useState(() => new DeviceManager())[0];
-  
+
   // Air Quality State
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Device State
-  const [devices, setDevices] = useState<Device[]>(devicesData);
+  const [devices, setDevices] = useState<Device[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        console.log('✅ Loaded devices from localStorage on mount');
+        return JSON.parse(stored);
+      }
+      return devicesData; // Fallback to default data
+    } catch (error) {
+      console.error('❌ Failed to load devices from localStorage:', error);
+      return devicesData;
+    }
+  });
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  
-  // Control Panel State
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("auto");
   const [globalFanLevel, setGlobalFanLevel] = useState<FanLevel>("hi");
   const [, setGlobalPower] = useState(false);
-  const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
+  const [devicePower, setDevicePower] = useState<boolean>(
+    selectedDevice ? selectedDevice.status === "on" : false
+  );
+
+  // Save devices to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+      console.log('✅ Saved devices to localStorage');
+      manager.setDevices(devices); // Sync with DeviceManager
+    } catch (error) {
+      console.error('❌ Failed to save devices to localStorage:', error);
+    }
+  }, [devices, manager]);
 
   // ========== COMPUTED VALUES ==========
-  
-  const isOn = selectedDevice
-    ? selectedDevice.status === "on"
-    : false;
-
+  const isOn = selectedDevice ? selectedDevice.status === "on" : false;
 
   // ========== EFFECTS ==========
 
-  // Update device manager when devices change
-// When devices change, update manager
-  useEffect(() => {
-    manager.setDevices(devices);
-  }, [devices, manager]);
-
-  // When manager changes devices, update React state
-  useEffect(() => {
-    setDevices(manager.getDevices());
-  }, [manager]);
-  
   // Air quality data fetching effect
   useEffect(() => {
     const fetchData = async () => {
@@ -67,50 +73,61 @@ export default function DevicesClient() {
     };
 
     fetchData();
-    // const interval = setInterval(fetchData, 30000);
 
     return () => {
-      // clearInterval(interval);
       manager.destroy();
     };
-  }, [manager]);
+  }, []);
 
-
-  // Initialize device states ** TAKA **
+  // Initialize device states
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       console.log("Refreshing devices...");
       try {
-        // setLoading(true);
-        // Fetch and update all devices
-        await manager.refreshAllDevices();
+        await manager.refreshAllDevices(controller.signal);
         const updatedDevices = manager.getDevices();
         setDevices(updatedDevices); // Sync React state with DeviceManager
         setGlobalMode(updatedDevices[0]?.mode || "auto");
         setGlobalFanLevel((updatedDevices[0]?.fanLevel as FanLevel) || "off");
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('❌ Device refresh aborted in DevicesClient');
+          return;
+        }
         setError("Failed to fetch data");
         console.error("Error:", err);
-      } finally {
-        // setLoading(false);
       }
     };
 
-    fetchData();
+    // Only fetch if localStorage was empty on mount
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      fetchData();
+    } else {
+      console.log('✅ (Devices) Using localStorage devices, delaying API fetch by 5 seconds');
+      manager.setDevices(devices); // Ensure manager is synced with localStorage data
+      const timeoutId = setTimeout(() => {
+        fetchData();
+      }, 5000);
+      return () => {
+        clearTimeout(timeoutId);
+        controller.abort();
+        manager.destroy();
+      };
+    }
 
     return () => {
+      controller.abort();
       manager.destroy();
     };
   }, [manager]);
 
-  // ========== EVENT HANDLERS ========== ** TAKA **
-  
+  // ========== EVENT HANDLERS ==========
+
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
 
     setDevicePower(!isOn);
-
-
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
@@ -118,48 +135,40 @@ export default function DevicesClient() {
           : device
       )
     );
-    
 
     try {
-      // Toggle device power through the manager
       await manager.toggleDevicePower(selectedDevice);
-      
-      // Refresh device state and fetch updated data
-      await manager.refreshDeviceState(selectedDevice);
-      await manager.getAQI(selectedDevice);
-      await manager.getPM25(selectedDevice);
-      await manager.getFilterLife(selectedDevice);
-
-      // Get the updated device data
-      const updatedDevice = manager.getDeviceById(selectedDevice.id);
-
-      // Update the selected device with new data
-      setSelectedDevice(updatedDevice || selectedDevice);
-
-      // Update the devices array with the new status
-
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
   };
 
   const handleGlobalModeChange = async (mode: Device["mode"]) => {
-    
     setGlobalMode(mode);
 
     if (mode === "manual") {
-      devices.forEach(async (device) => {
-        await manager.setFanLevel(device, "low");
-      });
-    };
+      await Promise.all(
+        devices.map(async (device) => {
+          try {
+            await manager.setFanLevel(device, "low");
+          } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') {
+              console.log(`❌ Fan level set aborted for device: ${device.model}`);
+              return;
+            }
+            console.error(`❌ Error setting fan level for device ${device.model}:`, err);
+          }
+        })
+      );
+    }
 
-  const newDevices = devices.map((device) => ({
-    ...device,
-    mode,
-    status: mode === "auto" ? "on" : device.status,
-  }));
-  setDevices(newDevices);
-  manager.setDevices(newDevices);
+    const newDevices = devices.map((device) => ({
+      ...device,
+      mode,
+      status: mode === "auto" ? "on" : device.status,
+    }));
+    setDevices(newDevices);
+    manager.setDevices(newDevices);
 
     if (selectedDevice) {
       setSelectedDevice((prev) =>
@@ -170,62 +179,74 @@ export default function DevicesClient() {
     }
 
     const switchToAutoMode = mode === "auto";
-    await manager.setAutoMode(switchToAutoMode);
-
-    await manager.refreshAllDevices();
-    const updatedDevices = manager.getDevices();
-    setDevices(updatedDevices); // Sync React state with DeviceManager
-
+    try {
+      await manager.setAutoMode(switchToAutoMode);
+      await manager.refreshAllDevices();
+      const updatedDevices = manager.getDevices();
+      setDevices(updatedDevices);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log('❌ Auto mode set or refresh aborted');
+        return;
+      }
+      console.error("Error setting auto mode or refreshing devices:", err);
+    }
   };
 
-const handleGlobalFanLevel = async (level: FanLevel) => {
+  const handleGlobalFanLevel = async (level: FanLevel) => {
+    const controller = new AbortController();
+    setGlobalFanLevel(level);
+    const shouldBeOn = level !== "off";
+    setGlobalPower(shouldBeOn);
 
+    const newDevices = devices.map((device) => ({
+      ...device,
+      fanLevel: level,
+      status: shouldBeOn ? "on" : "off",
+    }));
 
-  setGlobalFanLevel(level);
-  const shouldBeOn = level !== "off";
-  setGlobalPower(shouldBeOn);
+    setDevices(newDevices);
+    manager.setDevices(newDevices);
 
-  // Create the new devices array
-  const newDevices =  devices.map((device) => ({
-    ...device,
-    fanLevel: level,
-    // status: shouldBeOn ? "on" : "off",
-  }));
-
-  // Update React state and manager with the new array
-  setDevices(newDevices);
-  manager.setDevices(newDevices);
-
-  // Now loop over the new array
-  newDevices.forEach( async (device) => {
-    // if (level === "off" && device.status === "on") {
-    //   await manager.toggleDevicePower(device)
-    // }
-    await manager.setFanLevel(device, level);
-  });
-
-    const newDevices2 =  devices.map((device) => ({
-    ...device,
-    fanLevel: level,
-    status: shouldBeOn ? "on" : "off",
-  }));
-
-  setDevices(newDevices2);
-  manager.setDevices(newDevices2);
-
-
-
-  // Optionally sync React state with manager again
-  setDevices(manager.getDevices());
-
-  if (selectedDevice) {
-    setSelectedDevice((prev) =>
-      prev
-        ? { ...prev, fanLevel: level, status: shouldBeOn ? "on" : "off" }
-        : null
+    await Promise.all(
+      newDevices.map(async (device) => {
+        try {
+          if (level === "off") {
+            await manager.toggleDevicePower(device);
+            console.log(`✅ Power toggled to OFF for device: ${device.model}`);
+          } else {
+            await manager.setFanLevel(device, level);
+            console.log(`✅ Fan level set to ${level.toUpperCase()} for device: ${device.model}`);
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            console.log(`❌ Fan level or power toggle aborted for device: ${device.model}`);
+            return;
+          }
+          console.error(`❌ Error processing device ${device.model}:`, error);
+        }
+      })
     );
-  }
-};
+
+    try {
+      await manager.refreshAllDevices(controller.signal);
+      setDevices([...manager.getDevices()]);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log('❌ Device refresh aborted in handleGlobalFanLevel');
+        return;
+      }
+      console.error("Error refreshing devices:", err);
+    }
+
+    if (selectedDevice) {
+      setSelectedDevice((prev) =>
+        prev
+          ? { ...prev, fanLevel: level, status: shouldBeOn ? "on" : "off" }
+          : null
+      );
+    }
+  };
 
   const handleCloseDeviceDetail = () => {
     setSelectedDevice(null);
@@ -237,17 +258,14 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleControlPanelToggle = async () => {
+  const handleControlPanelToggle = () => {
     setControlPanelOpen(!controlPanelOpen);
   };
 
   // ========== CONDITIONAL RENDERING ==========
-  
   if (error) {
     return (
-      <div className="min-h-screen pt-10 px-5 text-red-500">
-        {error}
-      </div>
+      <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>
     );
   }
 
@@ -260,11 +278,9 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
   }
 
   // ========== MAIN RENDER ==========
-  
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       <div className="px-4 pb-20">
-        
         {/* Header Section */}
         <header className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Devices</h1>
@@ -293,8 +309,6 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                 <ChevronDown />
               </div>
             </button>
-
-            {/* Animated Panel Body */}
             <div
               className={`transition-all duration-300 ease-in-out overflow-hidden ${
                 controlPanelOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
@@ -305,7 +319,6 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                   controlPanelOpen ? "translate-y-0" : "-translate-y-4"
                 }`}
               >
-                {/* Global Mode Control */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-3">
                     MODE (ALL DEVICES)
@@ -327,8 +340,6 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                     ))}
                   </div>
                 </div>
-
-                {/* Global Fan Level Control */}
                 {globalMode === "manual" && (
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-3">
@@ -375,10 +386,10 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                       device.status === "on" ? "bg-green-200" : "bg-gray-200"
                     }`}
                   >
-                    <Wind 
+                    <Wind
                       className={`w-6 h-6 ${
                         device.status === "on" ? "text-green-600" : "text-gray-600"
-                      }`} 
+                      }`}
                     />
                   </div>
                   <div>
@@ -386,13 +397,12 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                     <p className="text-gray-600">{device.location}</p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <Power 
+                    <Power
                       className={`w-4 h-4 ${
                         device.status === "on" ? "text-green-600" : "text-gray-400"
-                      }`} 
+                      }`}
                     />
                     <span>Status: {device.status === "off" ? "Off" : "On"}</span>
                   </div>
@@ -409,17 +419,15 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
                     <span>Fan: {device.fanLevel}</span>
                   </div>
                 </div>
-
-                {/* AQI indicator for each device */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Room AQI:</span>
                     <span
                       className={`font-semibold ${
-                        device.aqiValue < 51 
-                          ? "text-green-600" 
-                          : device.aqiValue < 101 
-                          ? "text-yellow-600" 
+                        device.aqiValue < 51
+                          ? "text-green-600"
+                          : device.aqiValue < 101
+                          ? "text-yellow-600"
                           : "text-red-600"
                       }`}
                     >
@@ -433,7 +441,6 @@ const handleGlobalFanLevel = async (level: FanLevel) => {
         </section>
       </div>
 
-      {/* Device Detail Modal */}
       <DeviceDetail
         device={selectedDevice}
         isOpen={!!selectedDevice}
