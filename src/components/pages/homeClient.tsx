@@ -150,6 +150,7 @@ export default function HomeClient() {
       )
     );
 
+    
     try {
       await manager.toggleDevicePower(selectedDevice);
     } catch (err) {
