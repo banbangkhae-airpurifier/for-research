@@ -58,7 +58,7 @@ export class DeviceManager {
           location: 'COSCI Space',
           city: 'Bangkok, Petchburi',
           pm25: item.components.pm2_5,
-          aqi: 100,
+          aqi: item.main.aqi,
           lastUpdated: new Date()
         };
       }
