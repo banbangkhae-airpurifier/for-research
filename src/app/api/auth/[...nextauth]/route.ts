@@ -21,7 +21,7 @@ const handler = NextAuth({
 
     callbacks: {
         async signIn({ user }) {
-            const allowedEmails = ["thanyapisit.lim@g.swu.ac.th"]
+            const allowedEmails = ["thanyapisit.lim@g.swu.ac.th","taka20061016@gmail.com"]
             return Boolean(user.email && allowedEmails.includes(user.email))
         },
 
