@@ -22,7 +22,7 @@ const handler = NextAuth({
     callbacks: {
         async signIn({ user }) {
             const allowedEmails = ["thanyapisit.lim@g.swu.ac.th"]
-            return user.email && allowedEmails.includes(user.email)
+            return Boolean(user.email && allowedEmails.includes(user.email))
         },
 
         async jwt({ token, user }) {
@@ -34,8 +34,8 @@ const handler = NextAuth({
         },
 
         async session({ session, token }) {
-            session.email = token.email
-            session.verified = token.verified
+            session.email = token.email as string
+            session.verified = token.verified as boolean
             return session
         },
         async redirect({ baseUrl }) {
