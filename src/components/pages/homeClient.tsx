@@ -234,7 +234,9 @@ export default function HomeClient() {
                   <div className="flex flex-col text-center items-center gap-3">
                     {/* Device Icon */}
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <Wind className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
+                      <Wind className={`w-4 h-4 sm:w-6 sm:h-6 ${
+                        device.status === "on" ? "text-green-600" : "text-gray-600"
+                      }`} />
                     </div>
                     
                     {/* Device Information */}
