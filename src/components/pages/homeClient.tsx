@@ -233,11 +233,17 @@ export default function HomeClient() {
                 <CardContent className="p-3">
                   <div className="flex flex-col text-center items-center gap-3">
                     {/* Device Icon */}
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <Wind className={`w-4 h-4 sm:w-6 sm:h-6 ${
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      device.status === "on" ? "bg-green-200" : "bg-gray-200"
+                    }`}
+                  >
+                    <Wind
+                      className={`w-6 h-6 ${
                         device.status === "on" ? "text-green-600" : "text-gray-600"
-                      }`} />
-                    </div>
+                      }`}
+                    />
+                  </div>
                     
                     {/* Device Information */}
                     <div>

@@ -8,8 +8,8 @@ interface RequireAuthProps {
   children: React.ReactNode
 }
 
-export default function RequireAuth({ children }: RequireAuthProps) {
-  const cookieStore = cookies()
+export default async function RequireAuth({ children }: RequireAuthProps) {
+  const cookieStore = await cookies()
   const token = cookieStore.get("token")?.value
 
   try {
