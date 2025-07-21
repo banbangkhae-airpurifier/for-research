@@ -146,6 +146,8 @@ export class DeviceManager {
         } else {
           device.fanLevel = 'turbo';
         }
+      } else {
+        device.status = 'off';
       }
 
       if (autoModeState.state) {
