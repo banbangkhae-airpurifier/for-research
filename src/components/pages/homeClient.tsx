@@ -96,45 +96,51 @@ export default function HomeClient() {
     };
   }, [manager]);
 
-  // Fetch Devices
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchData = async () => {
-      try {
-        await manager.refreshAllDevices(controller.signal);
-        const updatedDevices = manager.getDevices();
-        setDevices(updatedDevices); // Sync React state with DeviceManager
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          console.log('❌ Device refresh aborted in HomeClient');
-          return;
-        }
-        setError("Failed to fetch data");
-        console.error("Error:", err);
+useEffect(() => {
+  let controller = new AbortController();
+  console.log('✅ useEffect mounted');
+
+  const fetchData = async (signal: AbortSignal) => {
+    console.log('🔄 Refreshing devices...');
+    try {
+      await manager.refreshAllDevices(signal);
+      const updatedDevices = manager.getDevices();
+      setDevices([...updatedDevices]); // Create new array to ensure re-render
+      console.log('✅ Devices updated:', updatedDevices);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log('❌ Device refresh aborted in HomeClient');
+        return;
       }
-    };
-
-    // Only fetch if localStorage was empty on mount
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      fetchData();
-    } else {
-      console.log('✅ (Home) Using localStorage devices, delaying API fetch by 5 seconds');
-      manager.setDevices(devices); // Ensure manager is synced with localStorage data
-      const timeoutId = setTimeout(() => {
-        fetchData();
-      }, 5000);
-      return () => {
-        clearTimeout(timeoutId);
-        controller.abort();
-        manager.destroy();
-      };
+      setError("Failed to fetch data");
+      console.error("Error:", err);
     }
+  };
 
-    return () => {
-      controller.abort();
-      manager.destroy();
-    };
-  }, []);
+  // Initial fetch or delayed fetch based on localStorage
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    console.log('✅ Fetching data immediately (no localStorage)');
+    fetchData(controller.signal);
+  } else {
+    console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
+    manager.setDevices(devices); // Sync manager with localStorage
+  }
+
+  // Auto-refresh every 30 seconds
+  const fetchInterval = setInterval(() => {
+    console.log('🔄 Fetching devices every 30 seconds');
+    controller = new AbortController(); // Create new controller for each fetch
+    fetchData(controller.signal);
+  }, 30 * 1000);
+
+  // Cleanup
+  return () => {
+    console.log('✅ Cleaning up useEffect');
+    clearInterval(fetchInterval);
+    controller.abort();
+    manager.destroy();
+  };
+}, []);
 
   // ========== EVENT HANDLERS ==========
   
