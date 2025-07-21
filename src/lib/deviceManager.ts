@@ -37,7 +37,7 @@ interface DeviceAttributes {
 export type FanLevel = "off" | "low" | "mid" | "high" | "turbo" | "hi";
 
 export class DeviceManager {
-  private habaseURL: string = 'http://homeassistant.local:8123'; // Replace with actual URL
+  private habaseURL: string = 'https://rvsecrcgiargc6o3uzryg6mr3jjglngf.ui.nabu.casa'; // Replace with actual URL
   private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
   airQuality: AirQuality | null = null;
   private devices: Device[] = [];
