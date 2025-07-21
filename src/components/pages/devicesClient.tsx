@@ -104,6 +104,8 @@ export default function DevicesClient() {
     if (!localStorage.getItem(STORAGE_KEY)) {
       fetchData();
     } else {
+      setGlobalMode(devices[0]?.mode || "auto");
+      setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
       console.log('✅ (Devices) Using localStorage devices, delaying API fetch by 5 seconds');
       manager.setDevices(devices); // Ensure manager is synced with localStorage data
       const timeoutId = setTimeout(() => {
