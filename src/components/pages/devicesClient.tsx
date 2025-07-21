@@ -194,7 +194,7 @@ export default function DevicesClient() {
   };
 
   const handleGlobalFanLevel = async (level: FanLevel) => {
-    const controller = new AbortController();
+    // const controller = new AbortController();
     setGlobalFanLevel(level);
     const shouldBeOn = level !== "off";
     setGlobalPower(shouldBeOn);
@@ -212,7 +212,7 @@ export default function DevicesClient() {
       newDevices.map(async (device) => {
         try {
           if (level === "off") {
-            await manager.toggleDevicePower(device);
+            await manager.offDevicePower(device);
             console.log(`✅ Power toggled to OFF for device: ${device.model}`);
           } else {
             await manager.setFanLevel(device, level);
@@ -229,8 +229,10 @@ export default function DevicesClient() {
     );
 
     try {
-      await manager.refreshAllDevices(controller.signal);
-      setDevices([...manager.getDevices()]);
+      // setTimeout(async () => {
+      //   await manager.refreshAllDevices(controller.signal);
+      //   setDevices([...manager.getDevices()]);
+      // }, 5000);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         console.log('❌ Device refresh aborted in handleGlobalFanLevel');
@@ -404,7 +406,7 @@ export default function DevicesClient() {
                         device.status === "on" ? "text-green-600" : "text-gray-400"
                       }`}
                     />
-                    <span>Status: {device.status === "off" ? "Off" : "On"}</span>
+                    <span>Status: {device.status === "on" ? "On" : "Off"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Droplets className="w-4 h-4" />
