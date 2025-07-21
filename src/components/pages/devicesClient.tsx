@@ -196,7 +196,7 @@ export default function DevicesClient() {
   };
 
   const handleGlobalFanLevel = async (level: FanLevel) => {
-    // const controller = new AbortController();
+    const controller = new AbortController();
     setGlobalFanLevel(level);
     const shouldBeOn = level !== "off";
     setGlobalPower(shouldBeOn);
@@ -231,10 +231,12 @@ export default function DevicesClient() {
     );
 
     try {
-      // setTimeout(async () => {
-      //   await manager.refreshAllDevices(controller.signal);
-      //   setDevices([...manager.getDevices()]);
-      // }, 5000);
+      await manager.refreshAllDevices(controller.signal);
+      const updatedDevices = manager.getDevices();
+      updatedDevices.forEach((device) => {
+        device.fanLevel = level;
+      });
+      setDevices([...updatedDevices]);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         console.log('❌ Device refresh aborted in handleGlobalFanLevel');
