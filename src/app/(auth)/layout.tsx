@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Urbanist } from "next/font/google"
 import "../globals.css"
-import ClientProvider from "@/components/guard/ClientProvider"
 
 
 const urbanist = Urbanist({
@@ -22,8 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${urbanist.variable} antialiased`}>
-        {/* ✅ ครอบด้วย ClientProvider */}
-        <ClientProvider>{children}</ClientProvider>
+        {children}
       </body>
     </html>
   )
