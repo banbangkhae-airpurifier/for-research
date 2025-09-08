@@ -335,7 +335,7 @@ useEffect(() => {
                       <button
                         key={mode}
                         onClick={() => handleGlobalModeChange(mode)}
-                        className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+                        className={`flex-1 px-4 py-3 rounded-md text-sm font-semibold transition-all duration-200 transform
                           ${
                             globalMode === mode
                               ? "bg-blue-500 text-white shadow-md"
@@ -352,12 +352,12 @@ useEffect(() => {
                     <h3 className="text-sm font-medium text-gray-500 mb-3">
                       FAN LEVEL (ALL DEVICES)
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                       {(["off", "low", "mid", "high", "turbo"] as FanLevel[]).map((level) => (
                         <button
                           key={level}
                           onClick={() => handleGlobalFanLevel(level)}
-                          className={`flex-1 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 transform
+                          className={`flex-1 min-w-[70px] px-2 py-3 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 transform
                             ${
                               globalFanLevel === level
                                 ? "bg-green-500 text-white shadow-md"
