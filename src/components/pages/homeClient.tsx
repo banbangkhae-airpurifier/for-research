@@ -21,19 +21,21 @@ export default function HomeClient() {
   const [error, setError] = useState<string | null>(null);
   
   // Device State
-  const [devices, setDevices] = useState<Device[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        console.log('✅ Loaded devices from localStorage on mount');
-        return JSON.parse(stored);
+  const [devices, setDevices] = useState<Device[]>(devicesData); // or []
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setDevices(JSON.parse(stored));
+          console.log('✅ Loaded devices from localStorage');
+        }
+      } catch (error) {
+        console.error('❌ Failed to load devices from localStorage:', error);
       }
-      return devicesData; // Fallback to default data
-    } catch (error) {
-      console.error('❌ Failed to load devices from localStorage:', error);
-      return devicesData;
     }
-  });
+  }, []);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
   // UI State
