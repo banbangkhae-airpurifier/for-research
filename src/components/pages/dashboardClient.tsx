@@ -12,33 +12,34 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Droplets, Thermometer, Cloudy } from "lucide-react";
+import { getAQIBadgeColor } from "@/lib/bgColor";
 
 const data = [
   { time: "08:00", pm25: 42, temp: 26, humidity: 60 },
   { time: "09:00", pm25: 58, temp: 27, humidity: 62 },
   { time: "10:00", pm25: 63, temp: 28, humidity: 65 },
   { time: "11:00", pm25: 40, temp: 29, humidity: 63 },
-  { time: "12:00", pm25: 52, temp: 30, humidity: 61 },
+  { time: "12:00", pm25: 48, temp: 30, humidity: 61 },
 ];
 
 export default function MyLineChart() {
   const [selected, setSelected] = useState<"pm25" | "temp" | "both">("pm25");
-
+  const latestPM25 = data[data.length - 1].pm25;
   // Card ข้างบน
   const cards = [
-    {
-      label: "PM2.5",
-      value: data[data.length - 1].pm25,
-      unit: "µg/m³",
-      icon: <Cloudy className="w-6 h-6 text-red-500" />,
-      bg: "bg-red-100",
-    },
     {
       label: "Temperature",
       value: data[data.length - 1].temp,
       unit: "°C",
       icon: <Thermometer className="w-6 h-6 text-blue-500" />,
       bg: "bg-blue-100",
+    },
+    {
+      label: "PM2.5",
+      value: data[data.length - 1].pm25,
+      unit: "µg/m³",
+      icon: <Cloudy className="w-6 h-6" />,
+      bg: getAQIBadgeColor(latestPM25), // ✅ dynamic
     },
     {
       label: "Humidity",
@@ -73,31 +74,28 @@ export default function MyLineChart() {
       <div className="flex gap-2">
         <button
           onClick={() => setSelected("pm25")}
-          className={`px-4 py-2 rounded-xl ${
-            selected === "pm25"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-          }`}
+          className={`px-4 py-2 rounded-xl ${selected === "pm25"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
         >
           PM2.5
         </button>
         <button
           onClick={() => setSelected("temp")}
-          className={`px-4 py-2 rounded-xl ${
-            selected === "temp"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-          }`}
+          className={`px-4 py-2 rounded-xl ${selected === "temp"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
         >
           Temperature
         </button>
         <button
           onClick={() => setSelected("both")}
-          className={`px-4 py-2 rounded-xl ${
-            selected === "both"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-          }`}
+          className={`px-4 py-2 rounded-xl ${selected === "both"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
         >
           Both
         </button>
