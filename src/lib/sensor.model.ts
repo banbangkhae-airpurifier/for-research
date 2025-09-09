@@ -11,14 +11,12 @@ export class PM25Sensor {
     }
 
     getAirQualityLevel(): string {
-        if (this.pm2_5 === null) return 'Unknown';
-
-        if (this.pm2_5 <= 12) return 'Good';
-        if (this.pm2_5 <= 35.4) return 'Moderate';
-        if (this.pm2_5 <= 55.4) return 'Unhealthy for Sensitive Groups';
-        if (this.pm2_5 <= 150.4) return 'Unhealthy';
-        if (this.pm2_5 <= 250.4) return 'Very Unhealthy';
-        return 'Hazardous';
+        if (this.pm2_5 === null) return "-"
+        if (this.pm2_5 < 51) return "Good"
+        if (this.pm2_5 < 101) return "Moderate"
+        if (this.pm2_5 < 151) return "Unhealthy for Sensitive Groups"
+        if (this.pm2_5 < 201) return "Unhealthy"
+        return "Very Unhealthy"
     }
 }
 
