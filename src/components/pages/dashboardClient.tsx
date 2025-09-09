@@ -10,124 +10,45 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Bar,
-  Legend,
-  BarChart,
-} from "recharts"
-import { fetchSensor, type AirQuality } from "@/lib/sensor"
-import {
-  get30Day1DayPole1,
-  get30Day1DayPole2,
-  get30DayTemp,
-  get4Week1WeekPole1,
-  get4Week1WeekPole2,
-  getWeeklyTemp,
-  getLast24hPole1,
-  getLast24hPole2,
-  getLast24hTemp,
-} from "@/lib/mockData"
-import { getPM25GradientClassHex } from "@/lib/bgColor"
+} from "recharts";
+import { Droplets, Thermometer, Cloudy } from "lucide-react";
+import { getAQIBadgeColor } from "@/lib/bgColor";
+
+const data = [
+  { time: "08:00", pm25: 42, temp: 26, humidity: 60 },
+  { time: "09:00", pm25: 58, temp: 27, humidity: 62 },
+  { time: "10:00", pm25: 63, temp: 28, humidity: 65 },
+  { time: "11:00", pm25: 40, temp: 29, humidity: 63 },
+  { time: "12:00", pm25: 48, temp: 30, humidity: 61 },
+];
 
 export default function MyLineChart() {
-  const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
-  const [pmView, setPmView] = useState<"1" | "2" | "both">("1")
-  const [isMobile, setIsMobile] = useState(false)
-  const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
-  const [combinedData, setCombinedData] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-
-  // Detect mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
-
-  // Fetch chart data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        let pm25Data: any[] = []
-        let pm25Data2: any[] = []
-        let tempData: any[] = []
-
-        if (range === "1d") {
-          pm25Data = await getLast24hPole1()
-          pm25Data2 = await getLast24hPole2()
-          tempData = await getLast24hTemp()
-        } else if (range === "7d") {
-          pm25Data = await get4Week1WeekPole1()
-          pm25Data2 = await get4Week1WeekPole2()
-          const rawTemp = await getWeeklyTemp()
-          tempData = rawTemp.map((item: any) => ({
-            time: item.WeekStartingDate,
-            value: item.WeeklyAverageCelsius ?? null,
-          }))
-        } else {
-          pm25Data = await get30Day1DayPole1()
-          pm25Data2 = await get30Day1DayPole2()
-          const rawTemp = await get30DayTemp()
-          tempData = rawTemp.map((item: any) => ({
-            time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
-            value: item.WeeklyAverageCelsius ?? null,
-          }))
-        }
-
-        const combined = pm25Data.map((item, idx) => ({
-          time: item.time,
-          pm25_1: item.value ?? null,
-          pm25_2: pm25Data2[idx]?.value ?? null,
-          temp: tempData[idx]?.value ?? null,
-          humidity: tempData[idx]?.humidity ?? null,
-        }))
-
-        setCombinedData(combined)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [range])
-
-
-  // Fetch live air quality
-  useEffect(() => {
-    const controller = new AbortController()
-    const sensor = new fetchSensor()
-    const fetchData = async () => {
-      try {
-        await sensor.fetchAirQuality(controller.signal)
-        const data = sensor.getAirQuality()
-        if (data) setAirQuality(data)
-      } catch (err) {
-        console.error("Error:", err)
-      }
-    }
-    fetchData()
-    return () => controller.abort()
-  }, [])
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-lg">
-          <p className="text-sm font-medium text-gray-900 mb-2">{`เวลา: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {`${entry.name}: ${entry.value}${entry.dataKey.includes("temp") ? "°C" : " µg/m³"}`}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+  const [selected, setSelected] = useState<"pm25" | "temp" | "both">("pm25");
+  const latestPM25 = data[data.length - 1].pm25;
+  // Card ข้างบน
+  const cards = [
+    {
+      label: "Temperature",
+      value: data[data.length - 1].temp,
+      unit: "°C",
+      icon: <Thermometer className="w-6 h-6 text-blue-500" />,
+      bg: "bg-blue-100",
+    },
+    {
+      label: "PM2.5",
+      value: data[data.length - 1].pm25,
+      unit: "µg/m³",
+      icon: <Cloudy className="w-6 h-6" />,
+      bg: getAQIBadgeColor(latestPM25), // ✅ dynamic
+    },
+    {
+      label: "Humidity",
+      value: data[data.length - 1].humidity,
+      unit: "%",
+      icon: <Droplets className="w-6 h-6 text-cyan-500" />,
+      bg: "bg-cyan-100",
+    },
+  ];
 
   return (
     <div className={`min-h-screen p-4 md:p-8 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
@@ -136,67 +57,36 @@ export default function MyLineChart() {
           <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
         </div>
 
-        <div className="bg-white/40 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-6">
-          <div className="flex flex-col sm:flex-row gap-6 items-center justify-between">
-            {/* Range Selection */}
-            <div className="space-y-2">
-              <div className="gap-2">
-                <label className="text-sm font-medium text-gray-700">ช่วงเวลา</label>
-              </div>
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
-                {[
-                  { key: "1d", label: "1 วัน" },
-                  { key: "7d", label: "7 วัน" },
-                  { key: "1m", label: "1 เดือน" },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => setRange(item.key as "1d" | "7d" | "1m")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${range === item.key
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                      }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sensor Selection */}
-            <div className="space-y-2">
-              <div className="gap-2">
-                <label className="text-sm font-medium text-gray-700">เซ็นเซอร์</label>
-              </div>
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
-                {[
-                  { key: "1", label: "Sensor 1" },
-                  { key: "2", label: "Sensor 2" },
-                  { key: "both", label: "ทั้งหมด" },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => setPmView(item.key as "1" | "2" | "both")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${pmView === item.key
-                      ? "bg-slate-800 text-white shadow-md"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-white"
-                      }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-8">
-          {/* PM2.5 Chart */}
-          <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-4">
-            <div className="mb-6 px-5 pt-3">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">pm 2.5</h2>
-              <p className="text-gray-600">ระดับฝุ่นละออง PM2.5 (µg/m³)</p>
-            </div>
+      {/* Segment ปุ่มเลือก */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setSelected("pm25")}
+          className={`px-4 py-2 rounded-xl ${selected === "pm25"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
+        >
+          PM2.5
+        </button>
+        <button
+          onClick={() => setSelected("temp")}
+          className={`px-4 py-2 rounded-xl ${selected === "temp"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
+        >
+          Temperature
+        </button>
+        <button
+          onClick={() => setSelected("both")}
+          className={`px-4 py-2 rounded-xl ${selected === "both"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700"
+            }`}
+        >
+          Both
+        </button>
+      </div>
 
             <div className="w-full h-80">
               {loading ? (
