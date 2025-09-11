@@ -2,24 +2,6 @@
 import { Subscription } from 'rxjs';
 import { Device } from "./device";
 
-// Interfaces for type safety
-interface AirQualityComponents {
-  pm2_5: number;
-  [key: string]: number;
-}
-
-interface AirQualityMain {
-  aqi: number;
-}
-
-interface AirQualityItem {
-  main: AirQualityMain;
-  components: AirQualityComponents;
-}
-
-interface OpenWeatherAirQualityResponse {
-  list: AirQualityItem[];
-}
 
 export interface AirQuality {
   location: string;
@@ -44,28 +26,7 @@ export class DeviceManager {
   private refreshTimer: Subscription | null = null;
   private STORAGE_KEY = 'device_manager_state';
 
-  // Fetch AQI / PM2.5 from OpenWeather
-  async fetchAirQuality(): Promise<void> {
-    const url = 'https://api.openweathermap.org/data/2.5/air_pollution?lat=13.7563&lon=100.5018&appid=9a65a66ea74d1d1afea8c8325a52f734';
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const decoded: OpenWeatherAirQualityResponse = await response.json();
 
-      const item = decoded.list[0];
-      if (item) {
-        this.airQuality = {
-          location: 'COSCI Space',
-          city: 'Bangkok, Petchburi',
-          pm25: item.components.pm2_5,
-          aqi: item.main.aqi,
-          lastUpdated: new Date()
-        };
-      }
-    } catch (error) {
-      console.error('❌ OpenWeather fetch error:', error);
-    }
-  }
 
   // Toggle device power
   async toggleDevicePower(device: Device): Promise<void> {
@@ -374,9 +335,7 @@ export class DeviceManager {
     }
   }
 
-  public getAirQuality(): AirQuality | null {
-    return this.airQuality;
-  }
+
 
   getDeviceById(id: string | number): Device | undefined {
     return this.devices.find((device) => device.id === id);

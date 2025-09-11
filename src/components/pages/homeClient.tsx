@@ -10,6 +10,7 @@ import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
+import  { fetchSensor } from "@/lib/sensor";
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
@@ -67,11 +68,12 @@ export default function HomeClient() {
   // Fetch Air Quality and update time
   useEffect(() => {
     const controller = new AbortController();
+    const sensor = new fetchSensor();
     const fetchData = async () => {
       try {
         setLoading(true);
-        await manager.fetchAirQuality();
-        const data = manager.getAirQuality();
+        await sensor.fetchAirQuality(controller.signal);
+        const data = sensor.getAirQuality();
         if (data) {
           setAirQuality(data);
         }
