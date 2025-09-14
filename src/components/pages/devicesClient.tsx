@@ -6,6 +6,7 @@ import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
+import  { fetchSensor } from "@/lib/sensor";
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
@@ -57,15 +58,21 @@ export default function DevicesClient() {
   // ========== EFFECTS ==========
 
   // Air quality data fetching effect
+  // Fetch Air Quality and update time
   useEffect(() => {
+    const controller = new AbortController();
+    const sensor = new fetchSensor();
     const fetchData = async () => {
       try {
         setLoading(true);
-        await manager.fetchAirQuality();
-        const data = manager.getAirQuality();
-        setAirQuality(data);
+        await sensor.fetchAirQuality(controller.signal);
+        const data = sensor.getAirQuality();
+        if (data) {
+          setAirQuality(data);
+        }
       } catch (err) {
-        setError("Failed to fetch air quality");
+
+        setError("Failed to fetch data");
         console.error("Error:", err);
       } finally {
         setLoading(false);
@@ -75,9 +82,10 @@ export default function DevicesClient() {
     fetchData();
 
     return () => {
+      controller.abort();
       manager.destroy();
     };
-  }, []);
+  }, [manager]);
 
   // Initialize device states
 useEffect(() => {
