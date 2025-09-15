@@ -16,6 +16,9 @@ import {
   pm25Data1Day,
   pm25Data7Days,
   pm25Data1Month,
+  pm25Data2_1Day,
+  pm25Data2_7Days,
+  pm25Data2_1Month,
   tempData1Day,
   tempData7Days,
   tempData1Month,
@@ -23,14 +26,14 @@ import {
   humidityData7Days,
   humidityData1Month,
 } from "@/lib/mockData";
+
 import { fetchSensor, AirQuality } from "@/lib/sensor";
-// import { extractTimeSeries } from "@/lib/extractData";
-// import { inputData } from "@/lib/extractData";
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
+  const [pmView, setPmView] = useState<"1" | "2" | "both">("1");
 
-  //อันนี้ของ card นะจ๊ะ
+  // Card data
   const getCardData = () => {
     return pm25Data1Day.map((item, idx) => ({
       time: item.time,
@@ -40,44 +43,40 @@ export default function MyLineChart() {
     }));
   };
 
-  //อันนี้ของกราฟกับตารางนะจ๊ะ
+  // Data สำหรับกราฟและตาราง
   const getData = () => {
-    let pm25Data, tempData, humidityData;
+    let pm25Data, pm25Data2, tempData, humidityData;
 
     if (range === "1d") {
       pm25Data = pm25Data1Day;
+      pm25Data2 = pm25Data2_1Day;
       tempData = tempData1Day;
       humidityData = humidityData1Day;
     } else if (range === "7d") {
       pm25Data = pm25Data7Days;
+      pm25Data2 = pm25Data2_7Days;
       tempData = tempData7Days;
       humidityData = humidityData7Days;
     } else {
       pm25Data = pm25Data1Month;
+      pm25Data2 = pm25Data2_1Month;
       tempData = tempData1Month;
       humidityData = humidityData1Month;
     }
 
     return pm25Data.map((item, idx) => ({
       time: item.time,
-      pm25: item.value,
+      pm25_1: pm25Data[idx]?.value,
+      pm25_2: pm25Data2[idx]?.value,
       temp: tempData[idx]?.value,
       humidity: humidityData[idx]?.value,
     }));
   };
 
-  //เรียก func นะจ๊ะ
   const cardData = getCardData();
   const latestData = cardData[cardData.length - 1];
-  //ของกราฟกับตารางนะจ๊ะ เวลากดเลือก วัน สัปดา ปี
   const combinedData = getData();
 
-  // useEffect(() => {
-  //   extractTimeSeries(inputData,"temp");
-  //   const tempResult = extractTimeSeries(inputData, "TempC");
-  //   console.log("temp data")
-  //   console.log(JSON.stringify(tempResult, null, 2));
-  // }, []);
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -86,22 +85,15 @@ export default function MyLineChart() {
       try {
         await sensor.fetchAirQuality(controller.signal);
         const data = sensor.getAirQuality();
-        if (data) {
-          setAirQuality(data);
-        }
+        if (data) setAirQuality(data);
       } catch (err) {
         console.error("Error:", err);
       }
     };
-
     fetchData();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, []);
 
-  //card data นะจ๊ะ
   const cards = [
     {
       label: "Temperature",
@@ -128,7 +120,7 @@ export default function MyLineChart() {
 
   return (
     <div className={`w-full p-4 px-20 space-y-6 pb-20 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
-      {/* Cards ข้างบน */}
+      {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-white/20 backdrop-blur-sm p-4 rounded-2xl shadow-2xl">
         {cards.map((card) => (
           <div
@@ -139,8 +131,7 @@ export default function MyLineChart() {
             <div>
               <p className="text-gray-700 font-semibold text-sm">{card.label}</p>
               <p className="text-2xl font-bold">
-                {card.value}{" "}
-                <span className="text-base font-normal">{card.unit}</span>
+                {card.value} <span className="text-base font-normal">{card.unit}</span>
               </p>
             </div>
           </div>
@@ -148,113 +139,106 @@ export default function MyLineChart() {
       </div>
 
       {/* Chart */}
-      <div className=" bg-white rounded-2xl shadow-2xl">
-      <div className="w-full space-y-12 p-10">
-        {/* ปุ่มเลือกช่วงเวลา */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setRange("1d")}
-            className={`px-4 py-2 rounded-xl ${range === "1d"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            1 วัน
-          </button>
-          <button
-            onClick={() => setRange("7d")}
-            className={`px-4 py-2 rounded-xl ${range === "7d"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            7 วัน
-          </button>
-          <button
-            onClick={() => setRange("1m")}
-            className={`px-4 py-2 rounded-xl ${range === "1m"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            1 เดือน
-          </button>
-        </div>
-
-        {/* กราฟ PM2.5 */}
-        <div className="w-full h-80">
-          <h2 className="text-lg font-bold mb-2">pm 2.5</h2>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={combinedData}
-              margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time"/>
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="pm25"
-                stroke="#ef4444"
-                strokeWidth={3}
-                dot={{ r: 5 }}
-                name="PM2.5"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* กราฟ Temperature */}
-        <div className="w-full h-80">
-          <h2 className="text-lg font-bold mb-2">Temperature</h2>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={combinedData}
-              margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="temp"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{ r: 5 }}
-                name="Temperature"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto p-10">
-        <table className="table-auto border-collapse border border-gray-300 w-full text-sm">
-          <thead>
-            <tr className="bg-blue-100">
-              <th className="border border-black px-4 py-2 text-left">Time</th>
-              <th className="border border-black px-4 py-2 text-left">
-                PM2.5 (µg/m³)
-              </th>
-              <th className="border border-black px-4 py-2 text-left">
-                Temperature (°C)
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {combinedData.map((row, idx) => (
-              <tr key={idx} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-4 py-2">{row.time}</td>
-                <td className="border border-gray-300 px-4 py-2">{row.pm25}</td>
-                <td className="border border-gray-300 px-4 py-2">{row.temp}</td>
-              </tr>
+      <div className="bg-white rounded-2xl shadow-2xl">
+        <div className="w-full space-y-12 p-10">
+          {/* Range Buttons */}
+          <div className="flex gap-2 mb-4">
+            {["1d", "7d", "1m"].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r as "1d" | "7d" | "1m")}
+                className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
+              </button>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Sensor Buttons */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setPmView("1")}
+              className={`px-4 py-2 rounded-xl ${pmView === "1" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Sensor 1
+            </button>
+            <button
+              onClick={() => setPmView("2")}
+              className={`px-4 py-2 rounded-xl ${pmView === "2" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Sensor 2
+            </button>
+            <button
+              onClick={() => setPmView("both")}
+              className={`px-4 py-2 rounded-xl ${pmView === "both" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Both
+            </button>
+          </div>
+
+          {/* PM2.5 Chart */}
+          <div className="w-full h-80">
+            <h2 className="text-lg font-bold mb-2">PM 2.5</h2>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={combinedData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                {(pmView === "1" || pmView === "both") && (
+                  <Line type="monotone" dataKey="pm25_1" stroke="#ef4444" strokeWidth={3} dot={{ r: 5 }} name="PM2.5 Sensor 1" />
+                )}
+                {(pmView === "2" || pmView === "both") && (
+                  <Line type="monotone" dataKey="pm25_2" stroke="#10b981" strokeWidth={3} dot={{ r: 5 }} name="PM2.5 Sensor 2" />
+                )}
+              </LineChart>
+
+            </ResponsiveContainer>
+          </div>
+
+          {/* Temperature Chart */}
+          <div className="w-full h-80">
+            <h2 className="text-lg font-bold mb-2">Temperature</h2>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={combinedData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="temp" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} name="Temperature" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto p-10">
+          <table className="table-auto border-collapse border border-gray-300 w-full text-sm">
+            <thead>
+              <tr className="bg-blue-100">
+                <th className="border border-black px-4 py-2 text-left">Time</th>
+                <th className="border border-black px-4 py-2 text-left">PM2.5 (µg/m³)</th>
+                <th className="border border-black px-4 py-2 text-left">Temperature (°C)</th>
+                <th className="border border-black px-4 py-2 text-left">Humidity (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {combinedData.map((row, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 px-4 py-2">{row.time}</td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {pmView === "1" && row.pm25_1}
+                    {pmView === "2" && row.pm25_2}
+                    {pmView === "both" && `${row.pm25_1} / ${row.pm25_2}`}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">{row.temp}</td>
+                  <td className="border border-gray-300 px-4 py-2">{row.humidity}</td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+        </div>
       </div>
     </div>
   );
