@@ -34,6 +34,8 @@ export default function MyLineChart() {
   const [isMobile, setIsMobile] = useState(false)
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [combinedData, setCombinedData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
 
   // Detect mobile
   useEffect(() => {
@@ -46,46 +48,53 @@ export default function MyLineChart() {
   // Fetch chart data
   useEffect(() => {
     const fetchData = async () => {
-      let pm25Data: any[] = []
-      let pm25Data2: any[] = []
-      let tempData: any[] = []
+      setLoading(true)
+      try {
+        let pm25Data: any[] = []
+        let pm25Data2: any[] = []
+        let tempData: any[] = []
 
-      if (range === "1d") {
-        pm25Data = await getLast24hPole1()
-        pm25Data2 = await getLast24hPole2()
-        tempData = await getLast24hTemp()
-      } else if (range === "7d") {
-        pm25Data = await get4Week1WeekPole1()
-        pm25Data2 = await get4Week1WeekPole2()
-        // Normalize weekly temp
-        const rawTemp = await getWeeklyTemp()
-        tempData = rawTemp.map((item: any) => ({
-          time: item.WeekStartingDate,
-          value: item.WeeklyAverageCelsius ?? null,
+        if (range === "1d") {
+          pm25Data = await getLast24hPole1()
+          pm25Data2 = await getLast24hPole2()
+          tempData = await getLast24hTemp()
+        } else if (range === "7d") {
+          pm25Data = await get4Week1WeekPole1()
+          pm25Data2 = await get4Week1WeekPole2()
+          const rawTemp = await getWeeklyTemp()
+          tempData = rawTemp.map((item: any) => ({
+            time: item.WeekStartingDate,
+            value: item.WeeklyAverageCelsius ?? null,
+          }))
+        } else {
+          pm25Data = await get30Day1DayPole1()
+          pm25Data2 = await get30Day1DayPole2()
+          const rawTemp = await get30DayTemp()
+          tempData = rawTemp.map((item: any) => ({
+            time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
+            value: item.WeeklyAverageCelsius ?? null,
+          }))
+        }
+
+        const combined = pm25Data.map((item, idx) => ({
+          time: item.time,
+          pm25_1: item.value ?? null,
+          pm25_2: pm25Data2[idx]?.value ?? null,
+          temp: tempData[idx]?.value ?? null,
+          humidity: tempData[idx]?.humidity ?? null,
         }))
-      } else {
-        pm25Data = await get30Day1DayPole1()
-        pm25Data2 = await get30Day1DayPole2()
-        const rawTemp = await get30DayTemp()
-        tempData = rawTemp.map((item: any) => ({
-          time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
-          value: item.WeeklyAverageCelsius ?? null,
-        }))
+
+        setCombinedData(combined)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
-
-      const combined = pm25Data.map((item, idx) => ({
-        time: item.time,
-        pm25_1: item.value ?? null,
-        pm25_2: pm25Data2[idx]?.value ?? null,
-        temp: tempData[idx]?.value ?? null,
-        humidity: tempData[idx]?.humidity ?? null,
-      }))
-
-      setCombinedData(combined)
     }
 
     fetchData()
   }, [range])
+
 
   // Fetch live air quality
   useEffect(() => {
