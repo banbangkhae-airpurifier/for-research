@@ -8,6 +8,7 @@ export interface AirQuality {
   city: string;
   pm25: number;
   aqi: number;
+  temp: number;
   lastUpdated: Date;
 }
 

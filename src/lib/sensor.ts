@@ -15,7 +15,7 @@ interface SensorAttributes {
 }
 
 export class fetchSensor {
-    private habaseURL: string = 'https://rvsecrcgiargc6o3uzryg6mr3jjglngf.ui.nabu.casa'; // Replace with actual URL
+    private habaseURL: string = 'https://ewid931c2fcm2rfzccpasgrhblklbwod.ui.nabu.casa'; // Replace with actual URL
     private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
     airQuality: AirQuality | null = null;
     private refreshTimer: Subscription | null = null;
@@ -49,8 +49,8 @@ export class fetchSensor {
 
   // Fetch AQI / PM2.5 from OpenWeather
     async fetchAirQuality(signal?: AbortSignal): Promise<void> {
-        const pm25 = await this.getSensor("sensor.dust_pole_pm2_5",signal) || 69;
-        const temp = await this.getSensor("sensor.dust_pole_temperature",signal) || 50;
+        const pm25 = await this.getSensor("sensor.dust_pole_pm2_5",signal) || 100;
+        const temp = await this.getSensor("sensor.dust_pole_temperature",signal) || 0;
         this.airQuality = {
             location: 'COSCI Space',
             city: 'Bangkok, Petchburi',
@@ -82,6 +82,27 @@ export class fetchSensor {
         }
     }
 
+    async getEmails(signal?: AbortSignal): Promise<string[] | undefined> {
+    try {
+        const { state } = await this.getState("input_text.allowed_emails", signal);
+        if (!state) {
+        console.error("❌ No state found for input_text.allowed_emails");
+        return undefined;
+        }
+
+        // Parse the JSON string into an array
+        const emailArray = JSON.parse(state) as string[];
+        // Trim each email to remove any extra whitespace
+        return emailArray.map(email => email.trim());
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log(`❌ Sensor fetch aborted`);
+        return undefined;
+        }
+        console.error(`❌ Can't fetch emails:`, error);
+        return undefined;
+    }
+    }
 }
 
 

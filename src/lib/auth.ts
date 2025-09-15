@@ -1,5 +1,8 @@
-import GoogleProvider from "next-auth/providers/google"
-import { NextAuthOptions } from "next-auth"
+import GoogleProvider from "next-auth/providers/google";
+import { NextAuthOptions } from "next-auth";
+import { fetchSensor } from "./sensor";
+// Instantiate fetchSensor
+const sensor = new fetchSensor();
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,26 +22,27 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user }) {
-      const allowedEmails = [
+      // Fetch allowed emails with a default fallback
+      const allowedEmails = (await sensor.getEmails()) ?? [
         "thanyapisit.lim@g.swu.ac.th",
         "taka20061016@gmail.com",
-      ]
-      return Boolean(user.email && allowedEmails.includes(user.email))
+      ];
+      return Boolean(user.email && allowedEmails.includes(user.email));
     },
     async jwt({ token, user }) {
       if (user) {
-        token.email = user.email
-        token.verified = true
+        token.email = user.email;
+        token.verified = true;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      session.user.email = token.email
-      session.user.verified = token.verified
-      return session
+      session.user.email = token.email;
+      session.user.verified = token.verified;
+      return session;
     },
     async redirect({ baseUrl }) {
-      return baseUrl // redirect ไป /
+      return baseUrl; // redirect to /
     },
   },
-}
+};
