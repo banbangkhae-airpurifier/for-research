@@ -17,6 +17,9 @@ import {
   pm25Data1Day,
   pm25Data7Days,
   pm25Data1Month,
+  pm25Data2_1Day,
+  pm25Data2_7Days,
+  pm25Data2_1Month,
   tempData1Day,
   tempData7Days,
   tempData1Month,
@@ -24,14 +27,14 @@ import {
   humidityData7Days,
   humidityData1Month,
 } from "@/lib/mockData";
+
 import { fetchSensor, AirQuality } from "@/lib/sensor";
-// import { extractTimeSeries } from "@/lib/extractData";
-// import { inputData } from "@/lib/extractData";
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
+  const [pmView, setPmView] = useState<"1" | "2" | "both">("1");
 
-  //อันนี้ของ card นะจ๊ะ
+  // Card data
   const getCardData = () => {
     return pm25Data1Day.map((item, idx) => ({
       time: item.time,
@@ -41,44 +44,40 @@ export default function MyLineChart() {
     }));
   };
 
-  //อันนี้ของกราฟกับตารางนะจ๊ะ
+  // Data สำหรับกราฟและตาราง
   const getData = () => {
-    let pm25Data, tempData, humidityData;
+    let pm25Data, pm25Data2, tempData, humidityData;
 
     if (range === "1d") {
       pm25Data = pm25Data1Day;
+      pm25Data2 = pm25Data2_1Day;
       tempData = tempData1Day;
       humidityData = humidityData1Day;
     } else if (range === "7d") {
       pm25Data = pm25Data7Days;
+      pm25Data2 = pm25Data2_7Days;
       tempData = tempData7Days;
       humidityData = humidityData7Days;
     } else {
       pm25Data = pm25Data1Month;
+      pm25Data2 = pm25Data2_1Month;
       tempData = tempData1Month;
       humidityData = humidityData1Month;
     }
 
     return pm25Data.map((item, idx) => ({
       time: item.time,
-      pm25: item.value,
+      pm25_1: pm25Data[idx]?.value,
+      pm25_2: pm25Data2[idx]?.value,
       temp: tempData[idx]?.value,
       humidity: humidityData[idx]?.value,
     }));
   };
 
-  //เรียก func นะจ๊ะ
   const cardData = getCardData();
   const latestData = cardData[cardData.length - 1];
-  //ของกราฟกับตารางนะจ๊ะ เวลากดเลือก วัน สัปดา ปี
   const combinedData = getData();
 
-  // useEffect(() => {
-  //   extractTimeSeries(inputData,"temp");
-  //   const tempResult = extractTimeSeries(inputData, "TempC");
-  //   console.log("temp data")
-  //   console.log(JSON.stringify(tempResult, null, 2));
-  // }, []);
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -87,22 +86,15 @@ export default function MyLineChart() {
       try {
         await sensor.fetchAirQuality(controller.signal);
         const data = sensor.getAirQuality();
-        if (data) {
-          setAirQuality(data);
-        }
+        if (data) setAirQuality(data);
       } catch (err) {
         console.error("Error:", err);
       }
     };
-
     fetchData();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, []);
 
-  //card data นะจ๊ะ
   const cards = [
     {
       label: "Temperature",
@@ -135,38 +127,42 @@ export default function MyLineChart() {
         </div>
 
       {/* Chart */}
-      <div className=" bg-white rounded-2xl shadow-2xl">
-      <div className="w-full space-y-12 p-10">
-        {/* ปุ่มเลือกช่วงเวลา */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setRange("1d")}
-            className={`px-4 py-2 rounded-xl ${range === "1d"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            1 วัน
-          </button>
-          <button
-            onClick={() => setRange("7d")}
-            className={`px-4 py-2 rounded-xl ${range === "7d"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            7 วัน
-          </button>
-          <button
-            onClick={() => setRange("1m")}
-            className={`px-4 py-2 rounded-xl ${range === "1m"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-          >
-            1 เดือน
-          </button>
-        </div>
+      <div className="bg-white rounded-2xl shadow-2xl">
+        <div className="w-full space-y-12 p-10">
+          {/* Range Buttons */}
+          <div className="flex gap-2 mb-4">
+            {["1d", "7d", "1m"].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r as "1d" | "7d" | "1m")}
+                className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
+              </button>
+            ))}
+          </div>
+
+          {/* Sensor Buttons */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setPmView("1")}
+              className={`px-4 py-2 rounded-xl ${pmView === "1" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Sensor 1
+            </button>
+            <button
+              onClick={() => setPmView("2")}
+              className={`px-4 py-2 rounded-xl ${pmView === "2" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Sensor 2
+            </button>
+            <button
+              onClick={() => setPmView("both")}
+              className={`px-4 py-2 rounded-xl ${pmView === "both" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+            >
+              Both
+            </button>
+          </div>
 
             <div className="w-full h-80">
               {loading ? (
