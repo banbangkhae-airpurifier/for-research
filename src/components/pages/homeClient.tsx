@@ -22,21 +22,39 @@ export default function HomeClient() {
   const [error, setError] = useState<string | null>(null);
   
   // Device State
-  const [devices, setDevices] = useState<Device[]>(devicesData); // or []
+    const isBrowser = typeof window !== 'undefined';
+  const [devices, setDevices] = useState<Device[]>(() => {
+      if (!isBrowser) {
+        // Return default value during SSR/SSG
+        return [];
+      }
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          setDevices(JSON.parse(stored));
-          console.log('✅ Loaded devices from localStorage');
+          console.log('✅ Loaded devices from localStorage on mount');
+          return JSON.parse(stored) as Device[];
         }
+        return devicesData; // Default to empty array if no data in localStorage
       } catch (error) {
         console.error('❌ Failed to load devices from localStorage:', error);
+        return []; // Fallback to empty array on error
       }
-    }
-  }, []);
+    });
+
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     try {
+  //       const stored = localStorage.getItem(STORAGE_KEY);
+  //       if (stored) {
+  //         setDevices(JSON.parse(stored));
+  //         console.log('✅ Loaded devices from localStorage');
+  //       }
+  //     } catch (error) {
+  //       console.error('❌ Failed to load devices from localStorage:', error);
+  //     }
+  //   }
+  // }, []);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
   // UI State
@@ -63,7 +81,7 @@ export default function HomeClient() {
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
-  }, [devices, manager]);
+  }, [devices]);
 
   // Fetch Air Quality and update time
   useEffect(() => {

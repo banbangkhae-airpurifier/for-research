@@ -19,19 +19,25 @@ export default function DevicesClient() {
   const [error, setError] = useState<string | null>(null);
 
   // Device State
+  const isBrowser = typeof window !== 'undefined';
   const [devices, setDevices] = useState<Device[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        console.log('✅ Loaded devices from localStorage on mount');
-        return JSON.parse(stored);
+      if (!isBrowser) {
+        // Return default value during SSR/SSG
+        return [];
       }
-      return devicesData; // Fallback to default data
-    } catch (error) {
-      console.error('❌ Failed to load devices from localStorage:', error);
-      return devicesData;
-    }
-  });
+
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          console.log('✅ Loaded devices from localStorage on mount');
+          return JSON.parse(stored) as Device[];
+        }
+        return devicesData; // Default to empty array if no data in localStorage
+      } catch (error) {
+        console.error('❌ Failed to load devices from localStorage:', error);
+        return []; // Fallback to empty array on error
+      }
+    });
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("auto");
@@ -50,7 +56,7 @@ export default function DevicesClient() {
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
-  }, [devices, manager]);
+  }, [devices]);
 
   // ========== COMPUTED VALUES ==========
   const isOn = selectedDevice ? selectedDevice.status === "on" : false;
