@@ -10,7 +10,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Bar,
+  Legend,
+  BarChart,
 } from "recharts";
+
 import { Droplets, Thermometer, Cloudy } from "lucide-react";
 import { getAQIBadgeColor, getPM25GradientClassHex } from "@/lib/bgColor";
 import {
@@ -33,6 +37,15 @@ import { fetchSensor, AirQuality } from "@/lib/sensor";
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
   const [pmView, setPmView] = useState<"1" | "2" | "both">("1");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Card data
   const getCardData = () => {
@@ -243,6 +256,7 @@ export default function MyLineChart() {
             </div>
           </div>
 
+
           {/* Temperature Chart */}
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-4">
             <div className="mb-6 px-5 pt-3">
@@ -300,6 +314,7 @@ export default function MyLineChart() {
               )}
             </div>
           </div>
+
         </div>
 
         <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
