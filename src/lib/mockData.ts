@@ -6,7 +6,7 @@ export const pm25Data1Day = [
   { time: "09:00", value: 58 },
   { time: "10:00", value: 63 },
   { time: "11:00", value: 48 },
-  { time: "12:00", value: 52 },
+  { time: "12:00", value: 10 },
 ];
 
 export const pm25Data7Days = [

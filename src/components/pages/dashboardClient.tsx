@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Droplets, Thermometer, Cloudy } from "lucide-react";
-import { getAQIBadgeColor } from "@/lib/bgColor";
+import { getAQIBadgeColor, getPM25GradientClassHex } from "@/lib/bgColor";
 import {
   pm25Data1Day,
   pm25Data7Days,
@@ -23,6 +23,7 @@ import {
   humidityData7Days,
   humidityData1Month,
 } from "@/lib/mockData";
+import { fetchSensor, AirQuality } from "@/lib/sensor";
 // import { extractTimeSeries } from "@/lib/extractData";
 // import { inputData } from "@/lib/extractData";
 
@@ -77,6 +78,28 @@ export default function MyLineChart() {
   //   console.log("temp data")
   //   console.log(JSON.stringify(tempResult, null, 2));
   // }, []);
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const sensor = new fetchSensor();
+    const fetchData = async () => {
+      try {
+        await sensor.fetchAirQuality(controller.signal);
+        const data = sensor.getAirQuality();
+        if (data) {
+          setAirQuality(data);
+        }
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   //card data นะจ๊ะ
   const cards = [
@@ -104,9 +127,9 @@ export default function MyLineChart() {
   ];
 
   return (
-    <div className="w-full p-4 px-20 space-y-6 pb-20">
+    <div className={`w-full p-4 px-20 space-y-6 pb-20 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
       {/* Cards ข้างบน */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-white/20 backdrop-blur-sm p-4 rounded-2xl shadow-2xl">
         {cards.map((card) => (
           <div
             key={card.label}
@@ -125,7 +148,8 @@ export default function MyLineChart() {
       </div>
 
       {/* Chart */}
-      <div className="w-full space-y-12 pt-5">
+      <div className=" bg-white rounded-2xl shadow-2xl">
+      <div className="w-full space-y-12 p-10">
         {/* ปุ่มเลือกช่วงเวลา */}
         <div className="flex gap-2 mb-4">
           <button
@@ -207,7 +231,7 @@ export default function MyLineChart() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto pt-10">
+      <div className="overflow-x-auto p-10">
         <table className="table-auto border-collapse border border-gray-300 w-full text-sm">
           <thead>
             <tr className="bg-blue-100">
@@ -230,6 +254,7 @@ export default function MyLineChart() {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
