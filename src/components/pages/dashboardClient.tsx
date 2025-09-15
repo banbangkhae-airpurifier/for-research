@@ -9,7 +9,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Bar,
+  Legend,
+  BarChart,
 } from "recharts";
+
 import { Droplets, Thermometer, Cloudy } from "lucide-react";
 import { getAQIBadgeColor, getPM25GradientClassHex } from "@/lib/bgColor";
 import {
@@ -32,6 +36,15 @@ import { fetchSensor, AirQuality } from "@/lib/sensor";
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
   const [pmView, setPmView] = useState<"1" | "2" | "both">("1");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Card data
   const getCardData = () => {
@@ -119,7 +132,7 @@ export default function MyLineChart() {
   ];
 
   return (
-    <div className={`w-full p-4 px-20 space-y-6 pb-20 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
+    <div className={`w-full p-4 px-10 space-y-6 pb-20 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-white/20 backdrop-blur-sm p-4 rounded-2xl shadow-2xl">
         {cards.map((card) => (
@@ -175,40 +188,99 @@ export default function MyLineChart() {
               Both
             </button>
           </div>
-
+          {/* PM2.5 Chart */}
           {/* PM2.5 Chart */}
           <div className="w-full h-80">
             <h2 className="text-lg font-bold mb-2">PM 2.5</h2>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={combinedData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                {(pmView === "1" || pmView === "both") && (
-                  <Line type="monotone" dataKey="pm25_1" stroke="#ef4444" strokeWidth={3} dot={{ r: 5 }} name="PM2.5 Sensor 1" />
-                )}
-                {(pmView === "2" || pmView === "both") && (
-                  <Line type="monotone" dataKey="pm25_2" stroke="#10b981" strokeWidth={3} dot={{ r: 5 }} name="PM2.5 Sensor 2" />
-                )}
-              </LineChart>
-
+              {range === "7d" ? (
+                <BarChart
+                  data={combinedData}
+                  margin={{ top: 20, right: 10, bottom: 20, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="time"
+                    angle={isMobile ? -45 : 0}
+                    textAnchor={isMobile ? "end" : "middle"}
+                    height={isMobile ? 60 : 30}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />   {/* ✅ แก้ให้โชว์ตลอด */}
+                  {(pmView === "1" || pmView === "both") && (
+                    <Bar dataKey="pm25_1" fill="#ef4444" name="PM2.5 Sensor 1" />
+                  )}
+                  {(pmView === "2" || pmView === "both") && (
+                    <Bar dataKey="pm25_2" fill="#10b981" name="PM2.5 Sensor 2" />
+                  )}
+                </BarChart>
+              ) : (
+                <LineChart
+                  data={combinedData}
+                  margin={{ top: 20, right: 10, bottom: 20, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="time"
+                    angle={isMobile ? -45 : 0}
+                    textAnchor={isMobile ? "end" : "middle"}
+                    height={isMobile ? 60 : 30}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />   {/* ✅ แก้ให้โชว์ตลอด */}
+                  {(pmView === "1" || pmView === "both") && (
+                    <Line
+                      type="monotone"
+                      dataKey="pm25_1"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                      dot={{ r: isMobile ? 2 : 5 }}
+                      name="PM2.5 Sensor 1"
+                    />
+                  )}
+                  {(pmView === "2" || pmView === "both") && (
+                    <Line
+                      type="monotone"
+                      dataKey="pm25_2"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ r: isMobile ? 2 : 5 }}
+                      name="PM2.5 Sensor 2"
+                    />
+                  )}
+                </LineChart>
+              )}
             </ResponsiveContainer>
           </div>
+
 
           {/* Temperature Chart */}
           <div className="w-full h-80">
             <h2 className="text-lg font-bold mb-2">Temperature</h2>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={combinedData} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+              <LineChart
+                data={combinedData}
+                margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="time" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="temp" stroke="#3b82f6" strokeWidth={3} dot={{ r: 5 }} name="Temperature" />
+                <Legend /> {/* ✅ เพิ่ม legend ให้โชว์ตลอด */}
+                <Line
+                  type="monotone"
+                  dataKey="temp"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ r: isMobile ? 2 : 5 }} // ✅ Dot เล็กลงบนมือถือ
+                  name="Temperature"
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
+
         </div>
 
         {/* Table */}
