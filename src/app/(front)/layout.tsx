@@ -11,6 +11,9 @@ const urbanist = Urbanist({
 export const metadata: Metadata = {
   title: "Air Purifier App",
   description: "Clean and healthy air control system",
+  icons: {
+    icon: '../favicon.ico', // ไอคอนที่แสดงบน tab
+  },
 };
 
 export default function RootLayout({
