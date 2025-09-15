@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Wind } from "lucide-react"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
 import type { AirQuality } from "@/lib/deviceManager"
-import DeviceManager from "@/lib/deviceManager"
+import { fetchSensor } from "@/lib/sensor"
 
 export default function LoginPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [, setIsAQILoading] = useState(true) 
 
   useEffect(() => {
-    const manager = new DeviceManager()
+    const manager = new fetchSensor()
     const fetchAQI = async () => {
       try {
         await manager.fetchAirQuality()
@@ -28,7 +28,6 @@ export default function LoginPage() {
     }
 
     fetchAQI()
-    return () => manager.destroy()
   }, [])
 
   const handleSignIn = async () => {
