@@ -24,6 +24,8 @@ import {
   humidityData7Days,
   humidityData1Month,
 } from "@/lib/mockData";
+// import { extractTimeSeries } from "@/lib/extractData";
+// import { inputData } from "@/lib/extractData";
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
@@ -69,6 +71,13 @@ export default function MyLineChart() {
   const latestData = cardData[cardData.length - 1];
   //ของกราฟกับตารางนะจ๊ะ เวลากดเลือก วัน สัปดา ปี
   const combinedData = getData();
+
+  // useEffect(() => {
+  //   extractTimeSeries(inputData,"temp");
+  //   const tempResult = extractTimeSeries(inputData, "TempC");
+  //   console.log("temp data")
+  //   console.log(JSON.stringify(tempResult, null, 2));
+  // }, []);
 
   //card data นะจ๊ะ
   const cards = [
