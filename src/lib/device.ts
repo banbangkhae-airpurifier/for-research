@@ -66,8 +66,8 @@ export class Device {
 export const devicesData: Device[] = [
   new Device("Core600s", "Main Room", "fan.core_600s", "sensor.core_600s_filter_lifetime", "sensor.core_600s_air_quality", "sensor.core_600s_pm2_5"),
   new Device("Core400s", "Main Room", "fan.core_400s", "sensor.core_400s_filter_lifetime", "sensor.core_400s_air_quality", "sensor.core_400s_pm2_5"),
-  new Device("Core200s", "Main Room", "fan.core_200s", "sensor.core_200s_filter_lifetime",  "", ""),
-  new Device("CoreTest", "Main Room", "fan.core_Test", "sensor.core_Test_lifetime", "sensor.core_test_air_quality", "sensor.core_test_pm2_5"),
+  new Device("Core600s", "Main Room", "fan.core_600s_series", "sensor.core_600s_series_filter_lifetime",  "sensor.core_600s_series_air_quality",  "sensor.core_600s_series_pm2_5"),
+  new Device("Core600s", "Main Room", "fan.core_600s_series_2", "sensor.core_600s_series_2_filter_lifetime",  "sensor.core_600s_series_2_air_quality",  "sensor.core_600s_series_pm2_5"),
   new Device("CoreTest", "Main Room", "fan.core_Test", "sensor.core_Test_lifetime", "sensor.core_test_air_quality", "sensor.core_test_pm2_5"),
   new Device("CoreTest", "Main Room", "fan.core_Test", "sensor.core_Test_lifetime", "sensor.core_test_air_quality", "sensor.core_test_pm2_5"),
 ];
