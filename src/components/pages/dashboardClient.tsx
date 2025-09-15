@@ -13,124 +13,112 @@ import {
   Bar,
   Legend,
   BarChart,
-} from "recharts";
-
-import { Droplets, Thermometer, Cloudy } from "lucide-react";
-import { getAQIBadgeColor, getPM25GradientClassHex } from "@/lib/bgColor";
+} from "recharts"
+import { fetchSensor, type AirQuality } from "@/lib/sensor"
 import {
-  pm25Data1Day,
-  pm25Data7Days,
-  pm25Data1Month,
-  pm25Data2_1Day,
-  pm25Data2_7Days,
-  pm25Data2_1Month,
-  tempData1Day,
-  tempData7Days,
-  tempData1Month,
-  humidityData1Day,
-  humidityData7Days,
-  humidityData1Month,
-} from "@/lib/mockData";
-
-import { fetchSensor, AirQuality } from "@/lib/sensor";
+  get30Day1DayPole1,
+  get30Day1DayPole2,
+  get30DayTemp,
+  get4Week1WeekPole1,
+  get4Week1WeekPole2,
+  getWeeklyTemp,
+  getLast24hPole1,
+  getLast24hPole2,
+  getLast24hTemp,
+} from "@/lib/mockData"
+import { getPM25GradientClassHex } from "@/lib/bgColor"
 
 export default function MyLineChart() {
-  const [range, setRange] = useState<"1d" | "7d" | "1m">("1d");
-  const [pmView, setPmView] = useState<"1" | "2" | "both">("1");
-  const [isMobile, setIsMobile] = useState(false);
+  const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
+  const [pmView, setPmView] = useState<"1" | "2" | "both">("1")
+  const [isMobile, setIsMobile] = useState(false)
+  const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
+  const [combinedData, setCombinedData] = useState<any[]>([])
 
   // Detect mobile
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640)
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
-  // Card data
-  const getCardData = () => {
-    return pm25Data1Day.map((item, idx) => ({
-      time: item.time,
-      pm25: item.value,
-      temp: tempData1Day[idx]?.value,
-      humidity: humidityData1Day[idx]?.value,
-    }));
-  };
+  // Fetch chart data
+  useEffect(() => {
+    const fetchData = async () => {
+      let pm25Data: any[] = []
+      let pm25Data2: any[] = []
+      let tempData: any[] = []
 
-  // Data สำหรับกราฟและตาราง
-  const getData = () => {
-    let pm25Data, pm25Data2, tempData, humidityData;
+      if (range === "1d") {
+        pm25Data = await getLast24hPole1()
+        pm25Data2 = await getLast24hPole2()
+        tempData = await getLast24hTemp()
+      } else if (range === "7d") {
+        pm25Data = await get4Week1WeekPole1()
+        pm25Data2 = await get4Week1WeekPole2()
+        // Normalize weekly temp
+        const rawTemp = await getWeeklyTemp()
+        tempData = rawTemp.map((item: any) => ({
+          time: item.WeekStartingDate,
+          value: item.WeeklyAverageCelsius ?? null,
+        }))
+      } else {
+        pm25Data = await get30Day1DayPole1()
+        pm25Data2 = await get30Day1DayPole2()
+        const rawTemp = await get30DayTemp()
+        tempData = rawTemp.map((item: any) => ({
+          time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
+          value: item.WeeklyAverageCelsius ?? null,
+        }))
+      }
 
-    if (range === "1d") {
-      pm25Data = pm25Data1Day;
-      pm25Data2 = pm25Data2_1Day;
-      tempData = tempData1Day;
-      humidityData = humidityData1Day;
-    } else if (range === "7d") {
-      pm25Data = pm25Data7Days;
-      pm25Data2 = pm25Data2_7Days;
-      tempData = tempData7Days;
-      humidityData = humidityData7Days;
-    } else {
-      pm25Data = pm25Data1Month;
-      pm25Data2 = pm25Data2_1Month;
-      tempData = tempData1Month;
-      humidityData = humidityData1Month;
+      const combined = pm25Data.map((item, idx) => ({
+        time: item.time,
+        pm25_1: item.value ?? null,
+        pm25_2: pm25Data2[idx]?.value ?? null,
+        temp: tempData[idx]?.value ?? null,
+        humidity: tempData[idx]?.humidity ?? null,
+      }))
+
+      setCombinedData(combined)
     }
 
-    return pm25Data.map((item, idx) => ({
-      time: item.time,
-      pm25_1: pm25Data[idx]?.value,
-      pm25_2: pm25Data2[idx]?.value,
-      temp: tempData[idx]?.value,
-      humidity: humidityData[idx]?.value,
-    }));
-  };
+    fetchData()
+  }, [range])
 
-  const cardData = getCardData();
-  const latestData = cardData[cardData.length - 1];
-  const combinedData = getData();
-
-  const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  // Fetch live air quality
   useEffect(() => {
-    const controller = new AbortController();
-    const sensor = new fetchSensor();
+    const controller = new AbortController()
+    const sensor = new fetchSensor()
     const fetchData = async () => {
       try {
-        await sensor.fetchAirQuality(controller.signal);
-        const data = sensor.getAirQuality();
-        if (data) setAirQuality(data);
+        await sensor.fetchAirQuality(controller.signal)
+        const data = sensor.getAirQuality()
+        if (data) setAirQuality(data)
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error:", err)
       }
-    };
-    fetchData();
-    return () => controller.abort();
-  }, []);
+    }
+    fetchData()
+    return () => controller.abort()
+  }, [])
 
-  const cards = [
-    {
-      label: "Temperature",
-      value: latestData.temp,
-      unit: "°C",
-      icon: <Thermometer className="w-6 h-6 text-blue-500" />,
-      bg: "bg-blue-100",
-    },
-    {
-      label: "PM2.5",
-      value: latestData.pm25,
-      unit: "µg/m³",
-      icon: <Cloudy className="w-6 h-6" />,
-      bg: getAQIBadgeColor(latestData.pm25),
-    },
-    {
-      label: "Humidity",
-      value: latestData.humidity,
-      unit: "%",
-      icon: <Droplets className="w-6 h-6 text-cyan-500" />,
-      bg: "bg-cyan-100",
-    },
-  ];
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-lg">
+          <p className="text-sm font-medium text-gray-900 mb-2">{`เวลา: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {`${entry.name}: ${entry.value}${entry.dataKey.includes("temp") ? "°C" : " µg/m³"}`}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
 
   return (
     <div className={`min-h-screen p-4 md:p-8 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
@@ -314,7 +302,6 @@ export default function MyLineChart() {
               )}
             </div>
           </div>
-
         </div>
 
         <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
