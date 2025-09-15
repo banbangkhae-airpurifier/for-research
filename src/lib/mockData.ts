@@ -1,4 +1,6 @@
 // PM2.5 (µg/m³)
+
+
 export const pm25Data1Day = [
   { time: "08:00", value: 42 },
   { time: "09:00", value: 58 },
@@ -75,3 +77,5 @@ export const humidityData1Month = [
   { time: "Week 3", value: 60 },
   { time: "Week 4", value: 62 },
 ];
+
+
