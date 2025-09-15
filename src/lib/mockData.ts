@@ -1,163 +1,89 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const API_KEY = "$2a$10$VrorE5pMqe8yol4eLLO2M.L43ra2apMD1UHsMYm5.uNUuQwOiI4Xy";
+
+async function getDataFromBin(binId: string, valueKey: string, timeKey: string = "ReportDate") {
+  const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
+  try {
+    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
+    if (!res.ok) throw new Error(`Response status: ${res.status}`);
+    const json = await res.json();
+    return json.record.map((item: any) => ({
+      time: item[timeKey],
+      value: item[valueKey] ?? null
+        ? Number(item[valueKey].toFixed(2))
+        : null
+    }));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
 // ==================== PM2.5 Sensor 1 ====================
-export const pm25Data1Day = [
-  { time: "09:00", value: 42 }, { time: "10:00", value: 50 },
-  { time: "11:00", value: 55 }, { time: "12:00", value: 60 },
-  { time: "13:00", value: 58 }, { time: "14:00", value: 62 },
-  { time: "15:00", value: 65 }, { time: "16:00", value: 70 },
-  { time: "17:00", value: 68 }, { time: "18:00", value: 72 },
-  { time: "19:00", value: 75 }, { time: "20:00", value: 71 },
-  { time: "21:00", value: 65 }, { time: "22:00", value: 60 },
-  { time: "23:00", value: 55 }, { time: "00:00", value: 50 },
-  { time: "01:00", value: 48 }, { time: "02:00", value: 45 },
-  { time: "03:00", value: 43 }, { time: "04:00", value: 40 },
-  { time: "05:00", value: 38 }, { time: "06:00", value: 36 },
-  { time: "07:00", value: 39 }, { time: "08:00", value: 41 },
-];
+async function get7Day30minPole1() {
+  const url = `https://api.jsonbin.io/v3/b/68c7bf15ae596e708fef1f6a/latest`;
+  try {
+    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
+    const json = await res.json();
+    return json.record.map((item: any) => ({
+      time: item.ReportTime, // รวมวันที่กับเวลา
+      value: item.AveragePM25 != null
+        ? Number(item.AveragePM25?.toFixed(2))
+        : null
+    }));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
 
-export const pm25Data7Days = [
-  { time: "Week 1", value: 55 },
-  { time: "Week 2", value: 62 },
-  { time: "Week 3", value: 50 },
-  { time: "Week 4", value: 68 },
-];
+async function get7Day30minPole2() {
+  const url = `https://api.jsonbin.io/v3/b/68c7bf49d0ea881f407e509e/latest`;
+  try {
+    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
+    const json = await res.json();
+    return json.record.map((item: any) => ({
+      time: item.ReportTime,
+      value: item.AveragePM25 ?? null
+        ? Number(item.AveragePM25?.toFixed(2))
+        : null
+    }));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
 
-export const pm25Data1Month = [
-  { time: "Day 1", value: 40 }, { time: "Day 2", value: 42 },
-  { time: "Day 3", value: 44 }, { time: "Day 4", value: 46 },
-  { time: "Day 5", value: 48 }, { time: "Day 6", value: 50 },
-  { time: "Day 7", value: 52 }, { time: "Day 8", value: 54 },
-  { time: "Day 9", value: 56 }, { time: "Day 10", value: 58 },
-  { time: "Day 11", value: 60 }, { time: "Day 12", value: 62 },
-  { time: "Day 13", value: 64 }, { time: "Day 14", value: 66 },
-  { time: "Day 15", value: 68 }, { time: "Day 16", value: 70 },
-  { time: "Day 17", value: 72 }, { time: "Day 18", value: 74 },
-  { time: "Day 19", value: 76 }, { time: "Day 20", value: 78 },
-  { time: "Day 21", value: 70 }, { time: "Day 22", value: 68 },
-  { time: "Day 23", value: 65 }, { time: "Day 24", value: 62 },
-  { time: "Day 25", value: 60 }, { time: "Day 26", value: 58 },
-  { time: "Day 27", value: 55 }, { time: "Day 28", value: 52 },
-  { time: "Day 29", value: 50 }, { time: "Day 30", value: 48 },
-];
+export const get7Day30minBoth = () =>
+  getDataFromBin("68c7bf98ae596e708fef1ff5", "AveragePM25", "ReportTime");
 
-// ==================== PM2.5 Sensor 2 ====================
-export const pm25Data2_1Day = [
-  { time: "09:00", value: 35 }, { time: "10:00", value: 42 },
-  { time: "11:00", value: 48 }, { time: "12:00", value: 50 },
-  { time: "13:00", value: 52 }, { time: "14:00", value: 55 },
-  { time: "15:00", value: 60 }, { time: "16:00", value: 63 },
-  { time: "17:00", value: 65 }, { time: "18:00", value: 62 },
-  { time: "19:00", value: 60 }, { time: "20:00", value: 58 },
-  { time: "21:00", value: 55 }, { time: "22:00", value: 52 },
-  { time: "23:00", value: 48 }, { time: "00:00", value: 45 },
-  { time: "01:00", value: 42 }, { time: "02:00", value: 40 },
-  { time: "03:00", value: 38 }, { time: "04:00", value: 36 },
-  { time: "05:00", value: 34 }, { time: "06:00", value: 33 },
-  { time: "07:00", value: 34 }, { time: "08:00", value: 36 },
-];
 
-export const pm25Data2_7Days = [
-  { time: "Week 1", value: 50 },
-  { time: "Week 2", value: 57 },
-  { time: "Week 3", value: 49 },
-  { time: "Week 4", value: 60 },
-];
+// ==================== PM2.5 Sensor 1 Month ====================
+export const get30Day1DayPole1 = () => getDataFromBin("68c7cc9843b1c97be943705a", "AveragePM25", "ReportDate");
+export const get30Day1DayPole2 = () => getDataFromBin("68c7cce4d0ea881f407e5e6b", "AveragePM25", "ReportDate");
+export const get30Day1DayBoth = () => getDataFromBin("68c7cd4343b1c97be94370d6", "AveragePM25", "ReportDate");
 
-export const pm25Data2_1Month = [
-  { time: "Day 1", value: 35 }, { time: "Day 2", value: 37 },
-  { time: "Day 3", value: 39 }, { time: "Day 4", value: 41 },
-  { time: "Day 5", value: 43 }, { time: "Day 6", value: 45 },
-  { time: "Day 7", value: 47 }, { time: "Day 8", value: 49 },
-  { time: "Day 9", value: 51 }, { time: "Day 10", value: 53 },
-  { time: "Day 11", value: 55 }, { time: "Day 12", value: 57 },
-  { time: "Day 13", value: 59 }, { time: "Day 14", value: 61 },
-  { time: "Day 15", value: 63 }, { time: "Day 16", value: 65 },
-  { time: "Day 17", value: 60 }, { time: "Day 18", value: 58 },
-  { time: "Day 19", value: 56 }, { time: "Day 20", value: 54 },
-  { time: "Day 21", value: 52 }, { time: "Day 22", value: 50 },
-  { time: "Day 23", value: 48 }, { time: "Day 24", value: 46 },
-  { time: "Day 25", value: 44 }, { time: "Day 26", value: 42 },
-  { time: "Day 27", value: 40 }, { time: "Day 28", value: 38 },
-  { time: "Day 29", value: 36 }, { time: "Day 30", value: 35 },
-];
+// ==================== PM2.5 Weekly ====================
+export const get4Week1WeekPole1 = () => getDataFromBin("68c7cf3ed0ea881f407e6022", "AveragePM25", "WeekStartDate");
+export const get4Week1WeekPole2 = () => getDataFromBin("68c7cf5ed0ea881f407e6049", "AveragePM25", "WeekStartDate");
 
 // ==================== Temperature ====================
-export const tempData1Day = [
-  { time: "09:00", value: 26 }, { time: "10:00", value: 27 },
-  { time: "11:00", value: 28 }, { time: "12:00", value: 29 },
-  { time: "13:00", value: 30 }, { time: "14:00", value: 31 },
-  { time: "15:00", value: 31 }, { time: "16:00", value: 30 },
-  { time: "17:00", value: 29 }, { time: "18:00", value: 28 },
-  { time: "19:00", value: 27 }, { time: "20:00", value: 26 },
-  { time: "21:00", value: 25 }, { time: "22:00", value: 25 },
-  { time: "23:00", value: 24 }, { time: "00:00", value: 24 },
-  { time: "01:00", value: 23 }, { time: "02:00", value: 23 },
-  { time: "03:00", value: 22 }, { time: "04:00", value: 22 },
-  { time: "05:00", value: 22 }, { time: "06:00", value: 23 },
-  { time: "07:00", value: 24 }, { time: "08:00", value: 25 },
-];
+export const get7DayTemp = () => getDataFromBin("68c7cfcdd0ea881f407e60b2", "AverageCelsius", "ReportDate");
+export const get30DayTemp = () => getDataFromBin("68c7cfeeae596e708fef2f7a", "AverageCelsius", "ReportDate");
+export const getWeeklyTemp = () => getDataFromBin("68c7d010ae596e708fef2fa7", "WeeklyAverageCelsius", "WeekStartingDate");
 
-export const tempData7Days = [
-  { time: "Week 1", value: 28 },
-  { time: "Week 2", value: 30 },
-  { time: "Week 3", value: 27 },
-  { time: "Week 4", value: 29 },
-];
+// ==================== Last 24h ====================
+export const getLast24hPole1 = async () => {
+  const allData = await get7Day30minPole1();
+  return allData.slice(-49);
+};
 
-export const tempData1Month = [
-  { time: "Day 1", value: 27 }, { time: "Day 2", value: 28 },
-  { time: "Day 3", value: 29 }, { time: "Day 4", value: 30 },
-  { time: "Day 5", value: 31 }, { time: "Day 6", value: 30 },
-  { time: "Day 7", value: 29 }, { time: "Day 8", value: 28 },
-  { time: "Day 9", value: 27 }, { time: "Day 10", value: 27 },
-  { time: "Day 11", value: 28 }, { time: "Day 12", value: 29 },
-  { time: "Day 13", value: 30 }, { time: "Day 14", value: 31 },
-  { time: "Day 15", value: 31 }, { time: "Day 16", value: 30 },
-  { time: "Day 17", value: 29 }, { time: "Day 18", value: 28 },
-  { time: "Day 19", value: 27 }, { time: "Day 20", value: 26 },
-  { time: "Day 21", value: 27 }, { time: "Day 22", value: 28 },
-  { time: "Day 23", value: 29 }, { time: "Day 24", value: 30 },
-  { time: "Day 25", value: 31 }, { time: "Day 26", value: 30 },
-  { time: "Day 27", value: 29 }, { time: "Day 28", value: 28 },
-  { time: "Day 29", value: 27 }, { time: "Day 30", value: 26 },
-];
+export const getLast24hPole2 = async () => {
+  const allData = await get7Day30minPole2();
+  return allData.slice(-49);
+};
 
-// ==================== Humidity ====================
-export const humidityData1Day = [
-  { time: "09:00", value: 65 }, { time: "10:00", value: 64 },
-  { time: "11:00", value: 62 }, { time: "12:00", value: 60 },
-  { time: "13:00", value: 59 }, { time: "14:00", value: 58 },
-  { time: "15:00", value: 57 }, { time: "16:00", value: 56 },
-  { time: "17:00", value: 55 }, { time: "18:00", value: 55 },
-  { time: "19:00", value: 56 }, { time: "20:00", value: 57 },
-  { time: "21:00", value: 58 }, { time: "22:00", value: 59 },
-  { time: "23:00", value: 60 }, { time: "00:00", value: 61 },
-  { time: "01:00", value: 62 }, { time: "02:00", value: 63 },
-  { time: "03:00", value: 64 }, { time: "04:00", value: 65 },
-  { time: "05:00", value: 66 }, { time: "06:00", value: 67 },
-  { time: "07:00", value: 66 }, { time: "08:00", value: 65 },
-];
-
-export const humidityData7Days = [
-  { time: "Week 1", value: 62 },
-  { time: "Week 2", value: 65 },
-  { time: "Week 3", value: 60 },
-  { time: "Week 4", value: 64 },
-];
-
-export const humidityData1Month = [
-  { time: "Day 1", value: 65 }, { time: "Day 2", value: 64 },
-  { time: "Day 3", value: 63 }, { time: "Day 4", value: 62 },
-  { time: "Day 5", value: 61 }, { time: "Day 6", value: 60 },
-  { time: "Day 7", value: 59 }, { time: "Day 8", value: 58 },
-  { time: "Day 9", value: 57 }, { time: "Day 10", value: 56 },
-  { time: "Day 11", value: 55 }, { time: "Day 12", value: 56 },
-  { time: "Day 13", value: 57 }, { time: "Day 14", value: 58 },
-  { time: "Day 15", value: 59 }, { time: "Day 16", value: 60 },
-  { time: "Day 17", value: 61 }, { time: "Day 18", value: 62 },
-  { time: "Day 19", value: 63 }, { time: "Day 20", value: 64 },
-  { time: "Day 21", value: 65 }, { time: "Day 22", value: 66 },
-  { time: "Day 23", value: 67 }, { time: "Day 24", value: 68 },
-  { time: "Day 25", value: 69 }, { time: "Day 26", value: 68 },
-  { time: "Day 27", value: 67 }, { time: "Day 28", value: 66 },
-  { time: "Day 29", value: 65 }, { time: "Day 30", value: 64 },
-];
+export const getLast24hTemp = async () => {
+  const allData = await get7DayTemp();
+  return allData.slice(-49);
+};
