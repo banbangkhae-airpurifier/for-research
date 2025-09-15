@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,11 +9,10 @@ import { getPM25GradientClassHex } from "@/lib/bgColor"
 import type { AirQuality } from "@/lib/deviceManager"
 import { fetchSensor } from "@/lib/sensor"
 
-export default function ErrorPage() {
+export default function ErrorPage({ searchParams }: { searchParams: { error?: string } }) {
+  const error = searchParams.error
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [, setIsAQILoading] = useState(true)
-  const searchParams = useSearchParams()
-  const error = searchParams.get("error")
 
   useEffect(() => {
     const manager = new fetchSensor()
