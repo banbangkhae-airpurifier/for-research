@@ -10,7 +10,7 @@ import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
-import  { fetchSensor } from "@/lib/sensor";
+import { fetchSensor } from "@/lib/sensor";
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
@@ -22,41 +22,27 @@ export default function HomeClient() {
   const [error, setError] = useState<string | null>(null);
   
   // Device State
-    const isBrowser = typeof window !== 'undefined';
+  const isBrowser = typeof window !== 'undefined';
   const [devices, setDevices] = useState<Device[]>(() => {
-      if (!isBrowser) {
-        // Return default value during SSR/SSG
-        return [];
+    if (!isBrowser) {
+      return [];
+    }
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        console.log('✅ Loaded devices from localStorage on mount');
+        return JSON.parse(stored) as Device[];
       }
+      return devicesData;
+    } catch (error) {
+      console.error('❌ Failed to load devices from localStorage:', error);
+      return [];
+    }
+  });
 
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          console.log('✅ Loaded devices from localStorage on mount');
-          return JSON.parse(stored) as Device[];
-        }
-        return devicesData; // Default to empty array if no data in localStorage
-      } catch (error) {
-        console.error('❌ Failed to load devices from localStorage:', error);
-        return []; // Fallback to empty array on error
-      }
-    });
-
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     try {
-  //       const stored = localStorage.getItem(STORAGE_KEY);
-  //       if (stored) {
-  //         setDevices(JSON.parse(stored));
-  //         console.log('✅ Loaded devices from localStorage');
-  //       }
-  //     } catch (error) {
-  //       console.error('❌ Failed to load devices from localStorage:', error);
-  //     }
-  //   }
-  // }, []);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
+  
   // UI State
   const [currentTime, setCurrentTime] = useState(
     moment().format("ddd D MMM HH:mm:ss")
@@ -77,7 +63,7 @@ export default function HomeClient() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
       console.log('✅ Saved devices to localStorage');
-      manager.setDevices(devices); // Sync with DeviceManager
+      manager.setDevices(devices);
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
@@ -87,16 +73,15 @@ export default function HomeClient() {
   useEffect(() => {
     const controller = new AbortController();
     const sensor = new fetchSensor();
-    const fetchData = async () => {
+    const fetchData = async (loading: boolean) => {
       try {
-        setLoading(true);
+        setLoading(loading);
         await sensor.fetchAirQuality(controller.signal);
         const data = sensor.getAirQuality();
         if (data) {
           setAirQuality(data);
         }
       } catch (err) {
-
         setError("Failed to fetch data");
         console.error("Error:", err);
       } finally {
@@ -104,65 +89,66 @@ export default function HomeClient() {
       }
     };
 
-    fetchData();
+    fetchData(true);
+    const fetchInterval = setInterval(() => {
+      console.log('🔄 Fetching air every 30 seconds');
+      fetchData(false);
+    }, 30 * 1000);
 
-    // Set up interval to update current time
     const timeInterval = setInterval(() => {
       setCurrentTime(moment().format("ddd D MMM HH:mm:ss"));
     }, 1000);
 
     return () => {
       clearInterval(timeInterval);
+      clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
   }, [manager]);
 
-useEffect(() => {
-  let controller = new AbortController();
-  console.log('✅ useEffect mounted');
+  useEffect(() => {
+    let controller = new AbortController();
+    console.log('✅ useEffect mounted');
 
-  const fetchData = async (signal: AbortSignal) => {
-    console.log('🔄 Refreshing devices...');
-    try {
-      await manager.refreshAllDevices(signal);
-      const updatedDevices = manager.getDevices();
-      setDevices([...updatedDevices]); // Create new array to ensure re-render
-      console.log('✅ Devices updated:', updatedDevices);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log('❌ Device refresh aborted in HomeClient');
-        return;
+    const fetchData = async (signal: AbortSignal) => {
+      console.log('🔄 Refreshing devices...');
+      try {
+        await manager.refreshAllDevices(signal);
+        const updatedDevices = manager.getDevices();
+        setDevices([...updatedDevices]);
+        console.log('✅ Devices updated:', updatedDevices);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('❌ Device refresh aborted in HomeClient');
+          return;
+        }
+        setError("Failed to fetch data");
+        console.error("Error:", err);
       }
-      setError("Failed to fetch data");
-      console.error("Error:", err);
+    };
+
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      console.log('✅ Fetching data immediately (no localStorage)');
+      fetchData(controller.signal);
+    } else {
+      console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
+      manager.setDevices(devices);
     }
-  };
 
-  // Initial fetch or delayed fetch based on localStorage
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    console.log('✅ Fetching data immediately (no localStorage)');
-    fetchData(controller.signal);
-  } else {
-    console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
-    manager.setDevices(devices); // Sync manager with localStorage
-  }
+    const fetchInterval = setInterval(() => {
+      console.log('🔄 Fetching devices every 30 seconds');
+      controller = new AbortController();
+      fetchData(controller.signal);
+    }, 30 * 1000);
 
-  // Auto-refresh every 30 seconds
-  const fetchInterval = setInterval(() => {
-    console.log('🔄 Fetching devices every 30 seconds');
-    controller = new AbortController(); // Create new controller for each fetch
-    fetchData(controller.signal);
-  }, 30 * 1000);
-
-  // Cleanup
-  return () => {
-    console.log('✅ Cleaning up useEffect');
-    clearInterval(fetchInterval);
-    controller.abort();
-    manager.destroy();
-  };
-}, []);
+    return () => {
+      console.log('✅ Cleaning up useEffect');
+      clearInterval(fetchInterval);
+      controller.abort();
+      manager.destroy();
+    };
+  }, []);
 
   // ========== EVENT HANDLERS ==========
   
@@ -178,7 +164,6 @@ useEffect(() => {
       )
     );
 
-    
     try {
       await manager.toggleDevicePower(selectedDevice);
     } catch (err) {
@@ -196,6 +181,49 @@ useEffect(() => {
     console.log(device);
   };
 
+  // ========== SKELETON LOADING ==========
+  const SkeletonLoader = () => (
+    <div className="min-h-screen pt-10 px-5 bg-gray-200">
+      <div className="px-4 pb-20">
+        {/* Header Skeleton */}
+        <header className="mb-8">
+          <div className="h-8 w-3/4 bg-gray-300 rounded animate-pulse mb-2"></div>
+          <div className="h-6 w-1/2 bg-gray-300 rounded animate-pulse mb-4"></div>
+          <div className="h-5 w-1/3 bg-gray-300 rounded animate-pulse"></div>
+        </header>
+
+        {/* AQI Display Skeleton */}
+        <section className="text-center mb-8">
+          <div className="h-5 w-16 mx-auto bg-gray-300 rounded animate-pulse mb-4"></div>
+          <div className="h-20 w-32 mx-auto bg-gray-300 rounded animate-pulse mb-2"></div>
+          <div className="h-5 w-20 mx-auto bg-gray-300 rounded animate-pulse mb-4"></div>
+          <div className="h-8 w-24 mx-auto bg-gray-300 rounded animate-pulse"></div>
+        </section>
+
+        {/* Devices Section Skeleton */}
+        <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
+          <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
+              <Card key={index} className="bg-white">
+                <CardContent className="p-3">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
+                    <div className="w-full">
+                      <div className="h-4 w-3/4 mx-auto bg-gray-300 rounded animate-pulse mb-2"></div>
+                      <div className="h-3 w-1/2 mx-auto bg-gray-300 rounded animate-pulse"></div>
+                    </div>
+                    <div className="h-3 w-16 bg-gray-300 rounded animate-pulse"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+
   // ========== CONDITIONAL RENDERING ==========
   
   if (error) {
@@ -207,21 +235,14 @@ useEffect(() => {
   }
 
   if (loading || !airQuality) {
-    return (
-      <div className="min-h-screen pt-10 px-5 text-white">
-        Loading air quality...
-      </div>
-    );
+    return <SkeletonLoader />;
   }
 
   // ========== MAIN RENDER ==========
   
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
-      {/* Main Content Container */}
       <div className="px-4 pb-20">
-        
-        {/* Header Section - Location and Time Display */}
         <header className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">
             {airQuality.location}
@@ -234,7 +255,6 @@ useEffect(() => {
           </p>
         </header>
 
-        {/* AQI Display Section - Main air quality information */}
         <section className="text-center text-white mb-8">
           <p className="text-lg mb-4">PM2.5</p>
           <div className="text-8xl font-bold mb-2">
@@ -246,7 +266,6 @@ useEffect(() => {
           </Badge>
         </section>
 
-        {/* Devices Section - Grid of available devices */}
         <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices
@@ -260,20 +279,17 @@ useEffect(() => {
               >
                 <CardContent className="p-3">
                   <div className="flex flex-col text-center items-center gap-3">
-                    {/* Device Icon */}
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                    }`}
-                  >
-                    <Wind
-                      className={`w-6 h-6 ${
-                        device.status === "on" ? "text-green-600" : "text-gray-600"
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        device.status === "on" ? "bg-green-200" : "bg-gray-200"
                       }`}
-                    />
-                  </div>
-                    
-                    {/* Device Information */}
+                    >
+                      <Wind
+                        className={`w-6 h-6 ${
+                          device.status === "on" ? "text-green-600" : "text-gray-600"
+                        }`}
+                      />
+                    </div>
                     <div>
                       <h3 className="font-semibold text-sm sm:text-base">
                         {device.model}
@@ -282,8 +298,6 @@ useEffect(() => {
                         {device.location}
                       </p>
                     </div>
-                    
-                    {/* Device Status Indicator */}
                     <div>
                       <StatusIndicator isOn={device.status === "on"} />
                     </div>
@@ -295,7 +309,6 @@ useEffect(() => {
         </section>
       </div>
 
-      {/* Device Detail Modal */}
       <DeviceDetail
         device={selectedDevice}
         isOpen={!!selectedDevice}

@@ -6,7 +6,7 @@ import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
-import  { fetchSensor } from "@/lib/sensor";
+import { fetchSensor } from "@/lib/sensor";
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
@@ -21,23 +21,21 @@ export default function DevicesClient() {
   // Device State
   const isBrowser = typeof window !== 'undefined';
   const [devices, setDevices] = useState<Device[]>(() => {
-      if (!isBrowser) {
-        // Return default value during SSR/SSG
-        return [];
+    if (!isBrowser) {
+      return [];
+    }
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        console.log('✅ Loaded devices from localStorage on mount');
+        return JSON.parse(stored) as Device[];
       }
-
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          console.log('✅ Loaded devices from localStorage on mount');
-          return JSON.parse(stored) as Device[];
-        }
-        return devicesData; // Default to empty array if no data in localStorage
-      } catch (error) {
-        console.error('❌ Failed to load devices from localStorage:', error);
-        return []; // Fallback to empty array on error
-      }
-    });
+      return devicesData;
+    } catch (error) {
+      console.error('❌ Failed to load devices from localStorage:', error);
+      return [];
+    }
+  });
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [controlPanelOpen, setControlPanelOpen] = useState(false);
   const [globalMode, setGlobalMode] = useState<Device["mode"]>("auto");
@@ -52,7 +50,7 @@ export default function DevicesClient() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
       console.log('✅ Saved devices to localStorage');
-      manager.setDevices(devices); // Sync with DeviceManager
+      manager.setDevices(devices);
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
@@ -64,20 +62,18 @@ export default function DevicesClient() {
   // ========== EFFECTS ==========
 
   // Air quality data fetching effect
-  // Fetch Air Quality and update time
   useEffect(() => {
     const controller = new AbortController();
     const sensor = new fetchSensor();
-    const fetchData = async () => {
+    const fetchData = async (loading: boolean) => {
       try {
-        setLoading(true);
+        setLoading(loading);
         await sensor.fetchAirQuality(controller.signal);
         const data = sensor.getAirQuality();
         if (data) {
           setAirQuality(data);
         }
       } catch (err) {
-
         setError("Failed to fetch data");
         console.error("Error:", err);
       } finally {
@@ -85,65 +81,66 @@ export default function DevicesClient() {
       }
     };
 
-    fetchData();
+    fetchData(true);
+    const fetchInterval = setInterval(() => {
+      console.log('🔄 Fetching air every 30 seconds');
+      fetchData(false);
+    }, 30 * 1000);
 
     return () => {
+      clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
   }, [manager]);
 
   // Initialize device states
-useEffect(() => {
-  let controller = new AbortController();
-  console.log('✅ useEffect mounted');
+  useEffect(() => {
+    let controller = new AbortController();
+    console.log('✅ useEffect mounted');
 
-  const fetchData = async () => {
-    console.log("🔄 Refreshing devices...");
-    try {
-      await manager.refreshAllDevices(controller.signal);
-      const updatedDevices = manager.getDevices();
-      setDevices([...updatedDevices]); // Create new array to ensure re-render
-      console.log('✅ Devices updated:', updatedDevices);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log('❌ Device refresh aborted in DevicesClient');
-        return;
+    const fetchData = async () => {
+      console.log("🔄 Refreshing devices...");
+      try {
+        await manager.refreshAllDevices(controller.signal);
+        const updatedDevices = manager.getDevices();
+        setDevices([...updatedDevices]);
+        console.log('✅ Devices updated:', updatedDevices);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('❌ Device refresh aborted in DevicesClient');
+          return;
+        }
+        setError("Failed to fetch data");
+        console.error("Error:", err);
       }
-      setError("Failed to fetch data");
-      console.error("Error:", err);
+    };
+
+    setGlobalMode(devices[0]?.mode || "auto");
+    setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
+
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      console.log('✅ Fetching data immediately (no localStorage)');
+      fetchData();
+    } else {
+      console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
+      manager.setDevices(devices);
     }
-  };
 
-  setGlobalMode(devices[0]?.mode || "auto");
-  setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
+    const fetchInterval = setInterval(() => {
+      console.log('🔄 Fetching devices every 30 seconds');
+      controller.abort();
+      controller = new AbortController();
+      fetchData();
+    }, 30 * 1000);
 
-  // Initial fetch or delayed fetch based on localStorage
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    console.log('✅ Fetching data immediately (no localStorage)');
-    fetchData();
-  } else {
-    console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
-    manager.setDevices(devices); // Sync manager with localStorage
-  }
-
-  // Auto-refresh every 30 seconds
-  const fetchInterval = setInterval(() => {
-    console.log('🔄 Fetching devices every 30 seconds');
-    controller.abort(); // Abort previous fetch
-    controller = new AbortController(); // Create new controller
-    fetchData();
-  }, 30 * 1000);
-
-  // Cleanup
-  return () => {
-    console.log('✅ Cleaning up useEffect');
-    // if (timeoutId) clearTimeout(timeoutId);
-    clearInterval(fetchInterval);
-    controller.abort();
-    manager.destroy();
-  };
-}, []);
+    return () => {
+      console.log('✅ Cleaning up useEffect');
+      clearInterval(fetchInterval);
+      controller.abort();
+      manager.destroy();
+    };
+  }, []);
 
   // ========== EVENT HANDLERS ==========
 
@@ -154,7 +151,7 @@ useEffect(() => {
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
-          ? { ...device, status: isOn ? "off" : "on"}
+          ? { ...device, status: isOn ? "off" : "on" }
           : device
       )
     );
@@ -251,7 +248,7 @@ useEffect(() => {
     );
 
     try {
-      console.log("Done Set Fan Level")
+      console.log("Done Set Fan Level");
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         console.log('❌ Device refresh aborted in handleGlobalFanLevel');
@@ -283,6 +280,56 @@ useEffect(() => {
     setControlPanelOpen(!controlPanelOpen);
   };
 
+  // ========== SKELETON LOADING ==========
+  const SkeletonLoader = () => (
+    <div className="min-h-screen pt-10 px-5 bg-gray-200">
+      <div className="px-4 pb-20">
+        {/* Header Skeleton */}
+        <header className="mb-8">
+          <div className="h-8 w-1/4 bg-gray-300 rounded animate-pulse mb-2"></div>
+          <div className="flex items-center gap-4">
+            <div className="h-6 w-32 bg-gray-300 rounded animate-pulse"></div>
+            <div className="h-6 w-28 bg-gray-300 rounded animate-pulse"></div>
+          </div>
+        </header>
+
+        {/* Control Panel Skeleton */}
+        <section className="mb-6">
+          <div className="bg-white rounded-xl overflow-hidden">
+            <div className="h-16 w-full bg-gray-300 rounded animate-pulse"></div>
+          </div>
+        </section>
+
+        {/* Devices Grid Skeleton */}
+        <section className="bg-white/20 rounded-t-3xl p-6 -mx-4">
+          <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="bg-white rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-5 w-3/4 bg-gray-300 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-1/2 bg-gray-300 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+                  <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="h-3 w-3/4 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+
   // ========== CONDITIONAL RENDERING ==========
   if (error) {
     return (
@@ -291,18 +338,13 @@ useEffect(() => {
   }
 
   if (loading || !airQuality) {
-    return (
-      <div className="min-h-screen pt-10 px-5 text-white">
-        Loading air quality...
-      </div>
-    );
+    return <SkeletonLoader />;
   }
 
   // ========== MAIN RENDER ==========
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       <div className="px-4 pb-20">
-        {/* Header Section */}
         <header className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Devices</h1>
           <div className="flex items-center gap-4 text-white/90">
@@ -318,7 +360,6 @@ useEffect(() => {
           </div>
         </header>
 
-        {/* Control Panel Section */}
         <section className="mb-6">
           <div className="bg-white rounded-xl overflow-hidden shadow-lg">
             <button
@@ -389,7 +430,6 @@ useEffect(() => {
           </div>
         </section>
 
-        {/* Devices Grid Section */}
         <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices ({devices.length})
