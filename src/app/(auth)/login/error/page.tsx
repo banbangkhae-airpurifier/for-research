@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
 import type { AirQuality } from "@/lib/deviceManager"
-import DeviceManager from "@/lib/deviceManager"
+import { fetchSensor } from "@/lib/sensor"
 
 export default function ErrorPage() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
@@ -17,7 +17,7 @@ export default function ErrorPage() {
   const error = searchParams.get("error")
 
   useEffect(() => {
-    const manager = new DeviceManager()
+    const manager = new fetchSensor()
     const fetchAQI = async () => {
       try {
         await manager.fetchAirQuality()
@@ -30,7 +30,6 @@ export default function ErrorPage() {
     }
 
     fetchAQI()
-    return () => manager.destroy()
   }, [])
 
   return (
