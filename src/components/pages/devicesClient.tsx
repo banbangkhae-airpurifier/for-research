@@ -17,6 +17,7 @@ export default function DevicesClient() {
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Device State
   const isBrowser = typeof window !== 'undefined';
@@ -52,7 +53,7 @@ export default function DevicesClient() {
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devices]);
 
   // ========== COMPUTED VALUES ==========
@@ -83,18 +84,18 @@ export default function DevicesClient() {
     fetchData(true);
     const fetchInterval = setInterval(() => {
       fetchData(false);
-    }, 30 * 1000);
+    }, 15 * 1000);
 
     return () => {
       clearInterval(fetchInterval);
       controller.abort();
-      // manager.destroy();
+      manager.destroy();
     };
-  }, []);
+  }, [manager]);
 
   // Initialize device states
   useEffect(() => {
-    let controller = new AbortController();
+    const controller = new AbortController();
 
     const fetchData = async () => {
       try {
@@ -119,18 +120,19 @@ export default function DevicesClient() {
       manager.setDevices(devices);
     }
 
-    const fetchInterval = setInterval(() => {
-      controller.abort();
-      controller = new AbortController();
-      fetchData();
-    }, 30 * 1000);
+    // const fetchInterval = setInterval(() => {
+    //   console.log('🔄 Fetching devices every 30 seconds');
+    //   controller.abort();
+    //   controller = new AbortController();
+    //   fetchData();
+    // }, 30 * 1000);
 
     return () => {
-      clearInterval(fetchInterval);
+      // clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ========== EVENT HANDLERS ==========
@@ -149,6 +151,13 @@ export default function DevicesClient() {
 
     try {
       await manager.toggleDevicePower(selectedDevice);
+      setRefreshing(true);
+      // Additional 10-second delay to ensure state consistency
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await manager.refreshAllDevices();
+      const updatedDevices = manager.getDevices();
+      setRefreshing(false);
+      setDevices([...updatedDevices]);
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
@@ -191,9 +200,13 @@ export default function DevicesClient() {
     const switchToAutoMode = mode === "auto";
     try {
       await manager.setAutoMode(switchToAutoMode);
+      setRefreshing(true);
+      // Additional 10-second delay to ensure state consistency
+      await new Promise((resolve) => setTimeout(resolve, 10000));
       await manager.refreshAllDevices();
       const updatedDevices = manager.getDevices();
-      setDevices(updatedDevices);
+      setRefreshing(false);
+      setDevices([...updatedDevices]);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return;
@@ -230,12 +243,19 @@ export default function DevicesClient() {
           }
           console.error(`❌ Error processing device ${device.model}:`, error);
         }
-      })
+      }),
     );
 
     try {
+      setRefreshing(true);
+      // Additional 10-second delay to ensure state consistency
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await manager.refreshAllDevices();
+      const updatedDevices = manager.getDevices();
+      setRefreshing(false);
+      setDevices([...updatedDevices]);
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (err instanceof DOMException && err.name === 'AbortError') {s
         return;
       }
       console.error("Error refreshing devices:", err);
@@ -258,6 +278,7 @@ export default function DevicesClient() {
     setSelectedDevice(device);
     setDevicePower(device.status === "on");
     window.scrollTo({ top: 0, behavior: "smooth" });
+
   };
 
   const handleControlPanelToggle = () => {
@@ -287,7 +308,7 @@ export default function DevicesClient() {
         {/* Devices Grid Skeleton */}
         <section className="bg-white/20 rounded-t-3xl p-6 -mx-4">
           <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, index) => (
               <div key={index} className="bg-white rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -356,14 +377,12 @@ export default function DevicesClient() {
               </div>
             </button>
             <div
-              className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                controlPanelOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-              }`}
+              className={`transition-all duration-300 ease-in-out overflow-hidden ${controlPanelOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                }`}
             >
               <div
-                className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${
-                  controlPanelOpen ? "translate-y-0" : "-translate-y-4"
-                }`}
+                className={`p-6 space-y-6 transform transition-transform duration-300 ease-in-out ${controlPanelOpen ? "translate-y-0" : "-translate-y-4"
+                  }`}
               >
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-3">
@@ -375,10 +394,9 @@ export default function DevicesClient() {
                         key={mode}
                         onClick={() => handleGlobalModeChange(mode)}
                         className={`flex-1 px-4 py-3 rounded-md text-sm font-semibold transition-all duration-200 transform
-                          ${
-                            globalMode === mode
-                              ? "bg-blue-500 text-white shadow-md"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ${globalMode === mode
+                            ? "bg-blue-500 text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                       >
                         {mode.charAt(0).toUpperCase() + mode.slice(1)}
@@ -397,10 +415,9 @@ export default function DevicesClient() {
                           key={level}
                           onClick={() => handleGlobalFanLevel(level)}
                           className={`flex-1 min-w-[70px] px-2 py-3 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all duration-200 transform
-                            ${
-                              globalFanLevel === level
-                                ? "bg-green-500 text-white shadow-md"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            ${globalFanLevel === level
+                              ? "bg-green-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                         >
                           {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -418,7 +435,7 @@ export default function DevicesClient() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices ({devices.length})
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {devices.map((device) => (
               <div
                 key={device.id}
@@ -427,14 +444,12 @@ export default function DevicesClient() {
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                    }`}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
+                      }`}
                   >
                     <Wind
-                      className={`w-6 h-6 ${
-                        device.status === "on" ? "text-green-600" : "text-gray-600"
-                      }`}
+                      className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
+                        }`}
                     />
                   </div>
                   <div>
@@ -445,9 +460,8 @@ export default function DevicesClient() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Power
-                      className={`w-4 h-4 ${
-                        device.status === "on" ? "text-green-600" : "text-gray-400"
-                      }`}
+                      className={`w-4 h-4 ${device.status === "on" ? "text-green-600" : "text-gray-400"
+                        }`}
                     />
                     <span>Status: {device.status === "on" ? "On" : "Off"}</span>
                   </div>
@@ -468,13 +482,12 @@ export default function DevicesClient() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Room AQI:</span>
                     <span
-                      className={`font-semibold ${
-                        device.aqiValue < 51
-                          ? "text-green-600"
-                          : device.aqiValue < 101
+                      className={`font-semibold ${device.aqiValue < 51
+                        ? "text-green-600"
+                        : device.aqiValue < 101
                           ? "text-yellow-600"
                           : "text-red-600"
-                      }`}
+                        }`}
                     >
                       {device.aqiValue}
                     </span>

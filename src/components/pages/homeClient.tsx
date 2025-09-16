@@ -15,12 +15,13 @@ import { fetchSensor } from "@/lib/sensor";
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
   const STORAGE_KEY = 'device_manager_state';
-  
+
   // Air Quality State
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [refreshing, setRefreshing] = useState(false);
+
   // Device State
   const isBrowser = typeof window !== 'undefined';
   const [devices, setDevices] = useState<Device[]>(() => {
@@ -39,32 +40,38 @@ export default function HomeClient() {
     }
   });
 
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);  
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
-  
+
   // UI State
   const [currentTime, setCurrentTime] = useState(
     moment().format("ddd D MMM HH:mm:ss")
   );
-  
+
   // Device Manager Instance
   const manager = useState(() => new DeviceManager())[0];
 
   // ========== COMPUTED VALUES ==========
-  const isOn = selectedDevice 
-    ? (selectedDevice.status === "on") 
+  const isOn = selectedDevice
+    ? (selectedDevice.status === "on")
     : false;
 
   // ========== EFFECTS ==========
-  
+
   // Save devices to localStorage when they change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
-      manager.setDevices(devices);
-    } catch (error) {
-      console.error('❌ Failed to save devices to localStorage:', error);
+    const saveDevices = async () => {
+      if (!isBrowser) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+        manager.setDevices(devices);
+      } catch (error) {
+        console.error('❌ Failed to save devices to localStorage:', error);
+      }
     }
+
+    saveDevices();
+
   }, [devices]);
 
   // Fetch Air Quality and update time
@@ -90,7 +97,7 @@ export default function HomeClient() {
     fetchData(true);
     const fetchInterval = setInterval(() => {
       fetchData(false);
-    }, 30 * 1000);
+    }, 15 * 1000);
 
     const timeInterval = setInterval(() => {
       setCurrentTime(moment().format("ddd D MMM HH:mm:ss"));
@@ -100,12 +107,12 @@ export default function HomeClient() {
       clearInterval(timeInterval);
       clearInterval(fetchInterval);
       controller.abort();
-      // manager.destroy();
+      manager.destroy();
     };
-  }, []);
+  }, [manager]);
 
   useEffect(() => {
-    let controller = new AbortController();
+    const controller = new AbortController();
 
     const fetchData = async (signal: AbortSignal) => {
       try {
@@ -127,20 +134,21 @@ export default function HomeClient() {
       manager.setDevices(devices);
     }
 
-    const fetchInterval = setInterval(() => {
-      controller = new AbortController();
-      fetchData(controller.signal);
-    }, 30 * 1000);
+    // const fetchInterval = setInterval(() => {
+    //   console.log('🔄 Fetching devices every 30 seconds');
+    //   controller = new AbortController();
+    //   fetchData(controller.signal);
+    // }, 30 * 1000);
 
     return () => {
-      clearInterval(fetchInterval);
+      // clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
   }, []);
 
   // ========== EVENT HANDLERS ==========
-  
+
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
 
@@ -148,13 +156,20 @@ export default function HomeClient() {
     setDevices((prevDevices) =>
       prevDevices.map((device) =>
         device.id === selectedDevice.id
-          ? { ...device, status: isOn ? "off" : "on"}
+          ? { ...device, status: isOn ? "off" : "on" }
           : device
       )
     );
 
     try {
       await manager.toggleDevicePower(selectedDevice);
+      setRefreshing(true);
+      // Additional 10-second delay to ensure state consistency
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await manager.refreshAllDevices();
+      const updatedDevices = manager.getDevices();
+      setRefreshing(false);
+      setDevices([...updatedDevices]);
     } catch (err) {
       console.error("Error toggling device power:", err);
     }
@@ -191,8 +206,8 @@ export default function HomeClient() {
         {/* Devices Section Skeleton */}
         <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, index) => (
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
               <Card key={index} className="bg-white">
                 <CardContent className="p-3">
                   <div className="flex flex-col items-center gap-3">
@@ -213,7 +228,7 @@ export default function HomeClient() {
   );
 
   // ========== CONDITIONAL RENDERING ==========
-  
+
   if (error) {
     return (
       <div className="min-h-screen pt-10 px-5 text-red-500">
@@ -225,8 +240,9 @@ export default function HomeClient() {
   if (loading || !airQuality) {
     return <SkeletonLoader />;
   }
+
   // ========== MAIN RENDER ==========
-  
+
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
       <div className="px-4 pb-20">
@@ -257,7 +273,7 @@ export default function HomeClient() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices
           </h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             {devices.map((device) => (
               <Card
                 key={device.id}
@@ -267,14 +283,12 @@ export default function HomeClient() {
                 <CardContent className="p-3">
                   <div className="flex flex-col text-center items-center gap-3">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                      }`}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
+                        }`}
                     >
                       <Wind
-                        className={`w-6 h-6 ${
-                          device.status === "on" ? "text-green-600" : "text-gray-600"
-                        }`}
+                        className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
+                          }`}
                       />
                     </div>
                     <div>
