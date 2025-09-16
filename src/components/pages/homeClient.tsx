@@ -74,9 +74,10 @@ export default function HomeClient() {
     const controller = new AbortController();
     const sensor = new fetchSensor();
     const fetchData = async (loading: boolean) => {
+      console.log("fetch air at home client")
       try {
         setLoading(loading);
-        await sensor.fetchAirQuality(controller.signal);
+        await sensor.fetchAirQuality();
         const data = sensor.getAirQuality();
         if (data) {
           setAirQuality(data);
@@ -103,9 +104,9 @@ export default function HomeClient() {
       clearInterval(timeInterval);
       clearInterval(fetchInterval);
       controller.abort();
-      manager.destroy();
+      // manager.destroy();
     };
-  }, [manager]);
+  }, []);
 
   useEffect(() => {
     let controller = new AbortController();

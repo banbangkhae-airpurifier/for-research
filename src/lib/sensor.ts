@@ -52,8 +52,8 @@ export class fetchSensor {
         const pm25 = await this.getSensor("sensor.dust_pole_pm2_5",signal) || 0;
         const temp = await this.getSensor("sensor.dust_pole_temperature",signal) || 0;
         this.airQuality = {
-            location: 'COSCI Space',
-            city: 'Bangkok, Petchburi',
+            location: 'บ้านผู้สูงอายุบางแค 2',
+            city: 'Bangkok, Bangkae',
             pm25,
             aqi: calculateAQI(pm25),
             temp,

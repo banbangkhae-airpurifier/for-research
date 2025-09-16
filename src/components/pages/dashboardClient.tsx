@@ -136,45 +136,49 @@ export default function MyLineChart() {
           <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
         </div>
 
-      {/* Chart */}
-      <div className="bg-white rounded-2xl shadow-2xl">
-        <div className="w-full space-y-12 p-10">
-          {/* Range Buttons */}
-          <div className="flex gap-2 mb-4">
-            {["1d", "7d", "1m"].map((r) => (
+        {/* Chart */}
+        <div className="bg-white rounded-2xl shadow-2xl">
+          <div className="w-full space-y-12 p-10">
+            {/* Range Buttons */}
+            <div className="flex gap-2 mb-4">
+              {["1d", "7d", "1m"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r as "1d" | "7d" | "1m")}
+                  className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                >
+                  {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
+                </button>
+              ))}
+            </div>
+
+            {/* Sensor Buttons */}
+            <div className="flex gap-2 mb-6">
               <button
-                key={r}
-                onClick={() => setRange(r as "1d" | "7d" | "1m")}
-                className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                onClick={() => setPmView("1")}
+                className={`px-4 py-2 rounded-xl ${pmView === "1" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
               >
-                {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
+                Sensor 1
               </button>
-            ))}
-          </div>
+              <button
+                onClick={() => setPmView("2")}
+                className={`px-4 py-2 rounded-xl ${pmView === "2" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                Sensor 2
+              </button>
+              <button
+                onClick={() => setPmView("both")}
+                className={`px-4 py-2 rounded-xl ${pmView === "both" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                Both
+              </button>
+            </div>
 
-          {/* Sensor Buttons */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setPmView("1")}
-              className={`px-4 py-2 rounded-xl ${pmView === "1" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-            >
-              Sensor 1
-            </button>
-            <button
-              onClick={() => setPmView("2")}
-              className={`px-4 py-2 rounded-xl ${pmView === "2" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-            >
-              Sensor 2
-            </button>
-            <button
-              onClick={() => setPmView("both")}
-              className={`px-4 py-2 rounded-xl ${pmView === "both" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-            >
-              Both
-            </button>
-          </div>
-
-            <div className="w-full h-80">
+            <div className="w-full h-80 mb-12">
+              <div className="mb-6 pt-3">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">PM 2.5</h2>
+                <p className="text-gray-600">ค่าฝุ่น μg/m³</p>
+              </div>
               {loading ? (
                 <div className="flex items-center justify-center h-80">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
@@ -345,38 +349,38 @@ export default function MyLineChart() {
                   ))
                 ) : (
 
-                    combinedData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{row.time}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {pmView === "1" && (
+                  combinedData.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{row.time}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {pmView === "1" && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            {row.pm25_1}
+                          </span>
+                        )}
+                        {pmView === "2" && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {row.pm25_2}
+                          </span>
+                        )}
+                        {pmView === "both" && (
+                          <div className="flex gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                               {row.pm25_1}
                             </span>
-                          )}
-                          {pmView === "2" && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               {row.pm25_2}
                             </span>
-                          )}
-                          {pmView === "both" && (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                {row.pm25_1}
-                              </span>
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                {row.pm25_2}
-                              </span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {row.temp}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {row.temp}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

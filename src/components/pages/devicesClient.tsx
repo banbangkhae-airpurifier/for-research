@@ -67,9 +67,10 @@ export default function DevicesClient() {
     const controller = new AbortController();
     const sensor = new fetchSensor();
     const fetchData = async (loading: boolean) => {
+      console.log("fetch air at device client")
       try {
         setLoading(loading);
-        await sensor.fetchAirQuality(controller.signal);
+        await sensor.fetchAirQuality();
         const data = sensor.getAirQuality();
         if (data) {
           setAirQuality(data);
@@ -91,9 +92,9 @@ export default function DevicesClient() {
     return () => {
       clearInterval(fetchInterval);
       controller.abort();
-      manager.destroy();
+      // manager.destroy();
     };
-  }, [manager]);
+  }, []);
 
   // Initialize device states
   useEffect(() => {
