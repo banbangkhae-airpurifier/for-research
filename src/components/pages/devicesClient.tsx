@@ -54,6 +54,7 @@ export default function DevicesClient() {
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devices]);
 
   // ========== COMPUTED VALUES ==========
@@ -140,6 +141,7 @@ export default function DevicesClient() {
       controller.abort();
       manager.destroy();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ========== EVENT HANDLERS ==========
