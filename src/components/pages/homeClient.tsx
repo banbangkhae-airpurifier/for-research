@@ -191,7 +191,7 @@ export default function HomeClient() {
         {/* Devices Section Skeleton */}
         <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {[...Array(6)].map((_, index) => (
               <Card key={index} className="bg-white">
                 <CardContent className="p-3">
@@ -258,7 +258,7 @@ export default function HomeClient() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices
           </h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {devices.map((device) => (
               <Card
                 key={device.id}

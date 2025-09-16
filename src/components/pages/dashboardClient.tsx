@@ -27,7 +27,6 @@ import {
   getLast24hTemp,
 } from "@/lib/mockData"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
-import { set } from "react-hook-form"
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
