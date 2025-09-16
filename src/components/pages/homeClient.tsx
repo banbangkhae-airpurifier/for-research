@@ -225,7 +225,6 @@ export default function HomeClient() {
   if (loading || !airQuality) {
     return <SkeletonLoader />;
   }
-
   // ========== MAIN RENDER ==========
   
   return (

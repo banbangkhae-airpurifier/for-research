@@ -54,9 +54,22 @@ async function get7Day30minPole2() {
   }
 }
 
-export const get7Day30minBoth = () =>
-  getDataFromBin("68c7bf98ae596e708fef1ff5", "AveragePM25", "ReportTime");
-
+async function get7Day30minBoth() {
+  const url = `https://api.jsonbin.io/v3/b/68c7bf98ae596e708fef1ff5/latest`;
+  try {
+    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
+    const json = await res.json();
+    return json.record.map((item: any) => ({
+      time: item.ReportTime,
+      value: item.AveragePM25 ?? null
+        ? Number(item.AveragePM25?.toFixed(2))
+        : null
+    }));
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
 
 // ==================== PM2.5 Sensor 1 Month ====================
 export const get30Day1DayPole1 = () => getDataFromBin("68c7cc9843b1c97be943705a", "AveragePM25", "ReportDate");
@@ -80,6 +93,11 @@ export const getLast24hPole1 = async () => {
 
 export const getLast24hPole2 = async () => {
   const allData = await get7Day30minPole2();
+  return allData.slice(-49);
+};
+
+export const getLast24hBoth = async () => {
+  const allData = await get7Day30minBoth();
   return allData.slice(-49);
 };
 

@@ -25,12 +25,14 @@ import {
   getLast24hPole1,
   getLast24hPole2,
   getLast24hTemp,
+  get30Day1DayBoth,
+  getLast24hBoth,
 } from "@/lib/mockData"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
-  const [pmView, setPmView] = useState<"1" | "2" | "both">("1")
+  const [pmView, setPmView] = useState<"1" | "2" | "Average">("1")
   const [isMobile, setIsMobile] = useState(false)
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [combinedData, setCombinedData] = useState<any[]>([])
@@ -52,15 +54,18 @@ export default function MyLineChart() {
       try {
         let pm25Data: any[] = []
         let pm25Data2: any[] = []
+        let pm25Both: any[] = []
         let tempData: any[] = []
 
         if (range === "1d") {
           pm25Data = await getLast24hPole1()
           pm25Data2 = await getLast24hPole2()
+          pm25Both = await getLast24hBoth()
           tempData = await getLast24hTemp()
         } else if (range === "7d") {
           pm25Data = await get4Week1WeekPole1()
           pm25Data2 = await get4Week1WeekPole2()
+          // ⚠️ ยังไม่มี both สำหรับ 7 วัน ถ้าจะใช้ต้องสร้างเหมือนกัน
           const rawTemp = await getWeeklyTemp()
           tempData = rawTemp.map((item: any) => ({
             time: item.WeekStartingDate,
@@ -69,6 +74,7 @@ export default function MyLineChart() {
         } else {
           pm25Data = await get30Day1DayPole1()
           pm25Data2 = await get30Day1DayPole2()
+          pm25Both = await get30Day1DayBoth()   // ✅ both สำหรับ 1 เดือน
           const rawTemp = await get30DayTemp()
           tempData = rawTemp.map((item: any) => ({
             time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
@@ -80,6 +86,7 @@ export default function MyLineChart() {
           time: item.time,
           pm25_1: item.value ?? null,
           pm25_2: pm25Data2[idx]?.value ?? null,
+          pm25_avg: pm25Both[idx]?.value ?? null,  // ✅ ใช้จาก API both
           temp: tempData[idx]?.value ?? null,
           humidity: tempData[idx]?.humidity ?? null,
         }))
@@ -94,6 +101,7 @@ export default function MyLineChart() {
 
     fetchData()
   }, [range])
+
 
 
   // Fetch live air quality
@@ -169,12 +177,13 @@ export default function MyLineChart() {
                 Sensor 2
               </button>
               <button
-                onClick={() => setPmView("both")}
-                className={`px-4 py-2 rounded-xl ${pmView === "both" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+                onClick={() => setPmView("Average")}
+                className={`px-4 py-2 rounded-xl ${pmView === "Average" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
               >
-                Both
+                Average
               </button>
             </div>
+
 
             <div className="w-full h-80 mb-12">
               <div className="mb-6 pt-3">
@@ -200,12 +209,40 @@ export default function MyLineChart() {
                       <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-                      {(pmView === "1" || pmView === "both") && (
-                        <Bar dataKey="pm25_1" fill="url(#gradient1)" name="PM2.5 Sensor 1" radius={[4, 4, 0, 0]} />
+
+                      {pmView === "1" && (
+                        <Bar
+                          dataKey="pm25_1"
+                          fill="url(#gradient1)"
+                          name="PM2.5 Sensor 1"
+                          radius={[4, 4, 0, 0]}
+                        />
                       )}
-                      {(pmView === "2" || pmView === "both") && (
-                        <Bar dataKey="pm25_2" fill="url(#gradient2)" name="PM2.5 Sensor 2" radius={[4, 4, 0, 0]} />
+
+                      {pmView === "2" && (
+                        <Bar
+                          dataKey="pm25_2"
+                          fill="url(#gradient2)"
+                          name="PM2.5 Sensor 2"
+                          radius={[4, 4, 0, 0]}
+                        />
                       )}
+
+                      {pmView === "Average" && (
+                        <>
+                          <Bar
+                            dataKey="pm25_1"
+                            fill="url(#gradient1)"
+                            name="PM2.5 Sensor 1"
+                            radius={[4, 4, 0, 0]} />
+                          <Bar
+                            dataKey="pm25_2"
+                            fill="url(#gradient2)"
+                            name="PM2.5 Sensor 2"
+                            radius={[4, 4, 0, 0]} />
+                        </>
+                      )}
+
                       <defs>
                         <linearGradient id="gradient1" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
@@ -215,8 +252,13 @@ export default function MyLineChart() {
                           <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
                           <stop offset="100%" stopColor="#10b981" stopOpacity={0.6} />
                         </linearGradient>
+                        <linearGradient id="gradientAvg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.6} />
+                        </linearGradient>
                       </defs>
                     </BarChart>
+
                   ) : (
                     <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -230,7 +272,8 @@ export default function MyLineChart() {
                       <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-                      {(pmView === "1" || pmView === "both") && (
+
+                      {pmView === "1" && (
                         <Line
                           type="monotone"
                           dataKey="pm25_1"
@@ -241,7 +284,8 @@ export default function MyLineChart() {
                           name="PM2.5 Sensor 1"
                         />
                       )}
-                      {(pmView === "2" || pmView === "both") && (
+
+                      {pmView === "2" && (
                         <Line
                           type="monotone"
                           dataKey="pm25_2"
@@ -250,6 +294,18 @@ export default function MyLineChart() {
                           dot={{ r: isMobile ? 3 : 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
                           activeDot={{ r: 6, fill: "#10b981" }}
                           name="PM2.5 Sensor 2"
+                        />
+                      )}
+
+                      {pmView === "Average" && (
+                        <Line
+                          type="monotone"
+                          dataKey="pm25_avg"
+                          stroke="#6366f1"
+                          strokeWidth={3}
+                          dot={{ r: isMobile ? 3 : 5, fill: "#6366f1", strokeWidth: 2, stroke: "#fff" }}
+                          activeDot={{ r: 6, fill: "#6366f1" }}
+                          name="PM2.5 Average"
                         />
                       )}
                     </LineChart>
@@ -365,13 +421,10 @@ export default function MyLineChart() {
                             {row.pm25_2}
                           </span>
                         )}
-                        {pmView === "both" && (
+                        {pmView === "Average" && (
                           <div className="flex gap-2">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              {row.pm25_1}
-                            </span>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {row.pm25_2}
+                              {row.pm25_avg}
                             </span>
                           </div>
                         )}
