@@ -30,7 +30,6 @@ export default function HomeClient() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        console.log('✅ Loaded devices from localStorage on mount');
         return JSON.parse(stored) as Device[];
       }
       return devicesData;
@@ -62,7 +61,6 @@ export default function HomeClient() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
-      console.log('✅ Saved devices to localStorage');
       manager.setDevices(devices);
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
@@ -74,7 +72,6 @@ export default function HomeClient() {
     const controller = new AbortController();
     const sensor = new fetchSensor();
     const fetchData = async (loading: boolean) => {
-      console.log("fetch air at home client")
       try {
         setLoading(loading);
         await sensor.fetchAirQuality();
@@ -92,7 +89,6 @@ export default function HomeClient() {
 
     fetchData(true);
     const fetchInterval = setInterval(() => {
-      console.log('🔄 Fetching air every 30 seconds');
       fetchData(false);
     }, 30 * 1000);
 
@@ -110,18 +106,14 @@ export default function HomeClient() {
 
   useEffect(() => {
     let controller = new AbortController();
-    console.log('✅ useEffect mounted');
 
     const fetchData = async (signal: AbortSignal) => {
-      console.log('🔄 Refreshing devices...');
       try {
         await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
-        console.log('✅ Devices updated:', updatedDevices);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.log('❌ Device refresh aborted in HomeClient');
           return;
         }
         setError("Failed to fetch data");
@@ -130,21 +122,17 @@ export default function HomeClient() {
     };
 
     if (!localStorage.getItem(STORAGE_KEY)) {
-      console.log('✅ Fetching data immediately (no localStorage)');
       fetchData(controller.signal);
     } else {
-      console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
       manager.setDevices(devices);
     }
 
     const fetchInterval = setInterval(() => {
-      console.log('🔄 Fetching devices every 30 seconds');
       controller = new AbortController();
       fetchData(controller.signal);
     }, 30 * 1000);
 
     return () => {
-      console.log('✅ Cleaning up useEffect');
       clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
@@ -179,7 +167,6 @@ export default function HomeClient() {
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
     setDevicePower(device.status === "on");
-    console.log(device);
   };
 
   // ========== SKELETON LOADING ==========

@@ -32,14 +32,12 @@ export class fetchSensor {
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const json = await response.json();
-        console.log(`✅ Fetched state for ${entity}:`, json);
         return {
             state: json.state || '',
             attributes: json.attributes || {}
         };
         } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-            console.log(`❌ State fetch aborted for entity: ${entity}`);
             return { state: '', attributes: {} };
         }
         console.error('❌ getState error:', error);
@@ -75,7 +73,6 @@ export class fetchSensor {
         }
         } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-            console.log(`❌ Sensor fetch aborted}`);
             return;
         }   
         console.error(`❌ Cant Fetch Sensor : `, error);
@@ -96,7 +93,6 @@ export class fetchSensor {
         return emailArray.map(email => email.trim());
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ Sensor fetch aborted`);
         return undefined;
         }
         console.error(`❌ Can't fetch emails:`, error);

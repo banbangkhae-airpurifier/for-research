@@ -27,7 +27,6 @@ export default function DevicesClient() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        console.log('✅ Loaded devices from localStorage on mount');
         return JSON.parse(stored) as Device[];
       }
       return devicesData;
@@ -49,7 +48,6 @@ export default function DevicesClient() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
-      console.log('✅ Saved devices to localStorage');
       manager.setDevices(devices);
     } catch (error) {
       console.error('❌ Failed to save devices to localStorage:', error);
@@ -67,7 +65,6 @@ export default function DevicesClient() {
     const controller = new AbortController();
     const sensor = new fetchSensor();
     const fetchData = async (loading: boolean) => {
-      console.log("fetch air at device client")
       try {
         setLoading(loading);
         await sensor.fetchAirQuality();
@@ -85,7 +82,6 @@ export default function DevicesClient() {
 
     fetchData(true);
     const fetchInterval = setInterval(() => {
-      console.log('🔄 Fetching air every 30 seconds');
       fetchData(false);
     }, 30 * 1000);
 
@@ -99,18 +95,14 @@ export default function DevicesClient() {
   // Initialize device states
   useEffect(() => {
     let controller = new AbortController();
-    console.log('✅ useEffect mounted');
 
     const fetchData = async () => {
-      console.log("🔄 Refreshing devices...");
       try {
         await manager.refreshAllDevices(controller.signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
-        console.log('✅ Devices updated:', updatedDevices);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.log('❌ Device refresh aborted in DevicesClient');
           return;
         }
         setError("Failed to fetch data");
@@ -122,22 +114,18 @@ export default function DevicesClient() {
     setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
 
     if (!localStorage.getItem(STORAGE_KEY)) {
-      console.log('✅ Fetching data immediately (no localStorage)');
       fetchData();
     } else {
-      console.log('✅ Using localStorage devices, delaying API fetch by 3 seconds');
       manager.setDevices(devices);
     }
 
     const fetchInterval = setInterval(() => {
-      console.log('🔄 Fetching devices every 30 seconds');
       controller.abort();
       controller = new AbortController();
       fetchData();
     }, 30 * 1000);
 
     return () => {
-      console.log('✅ Cleaning up useEffect');
       clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
@@ -176,7 +164,6 @@ export default function DevicesClient() {
             await manager.setFanLevel(device, "low");
           } catch (err) {
             if (err instanceof DOMException && err.name === 'AbortError') {
-              console.log(`❌ Fan level set aborted for device: ${device.model}`);
               return;
             }
             console.error(`❌ Error setting fan level for device ${device.model}:`, err);
@@ -209,7 +196,6 @@ export default function DevicesClient() {
       setDevices(updatedDevices);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log('❌ Auto mode set or refresh aborted');
         return;
       }
       console.error("Error setting auto mode or refreshing devices:", err);
@@ -235,14 +221,11 @@ export default function DevicesClient() {
         try {
           if (level === "off") {
             await manager.offDevicePower(device);
-            console.log(`✅ Power toggled to OFF for device: ${device.model}`);
           } else {
             await manager.setFanLevel(device, level);
-            console.log(`✅ Fan level set to ${level.toUpperCase()} for device: ${device.model}`);
           }
         } catch (error) {
           if (error instanceof DOMException && error.name === 'AbortError') {
-            console.log(`❌ Fan level or power toggle aborted for device: ${device.model}`);
             return;
           }
           console.error(`❌ Error processing device ${device.model}:`, error);
@@ -251,10 +234,8 @@ export default function DevicesClient() {
     );
 
     try {
-      console.log("Done Set Fan Level");
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log('❌ Device refresh aborted in handleGlobalFanLevel');
         return;
       }
       console.error("Error refreshing devices:", err);

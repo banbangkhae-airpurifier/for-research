@@ -119,4 +119,3 @@ export const inputData = [{"TempC":39.239999999999995,"DateAndTime":"2025-09-09 
 
 // Example usage
 const tempResult = extractTimeSeries(inputData, "TempC");
-console.log(JSON.stringify(tempResult, null, 2));

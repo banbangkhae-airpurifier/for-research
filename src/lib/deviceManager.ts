@@ -35,7 +35,6 @@ export class DeviceManager {
   async toggleDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
     const service = device.status === 'on' ? 'turn_off' : 'turn_on';
-    console.log(service);
     const url = `${this.habaseURL}/api/services/${domain}/${service}`;
 
     try {
@@ -50,7 +49,6 @@ export class DeviceManager {
 
       if (response.ok) {
         device.status = device.status === 'on' ? 'off' : 'on';
-        console.log(`✅ Power toggled: ${device.status.toUpperCase()}`);
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -62,7 +60,6 @@ export class DeviceManager {
   async offDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
     const service = "turn_off";
-    console.log(service);
     const url = `${this.habaseURL}/api/services/${domain}/${service}`;
 
     try {
@@ -77,7 +74,6 @@ export class DeviceManager {
 
       if (response.ok) {
         device.status = device.status === 'on' ? 'off' : 'on';
-        console.log(`✅ Power toggled: ${device.status.toUpperCase()}`);
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -97,7 +93,6 @@ export class DeviceManager {
       if (deviceState.state) {
         device.status = deviceState.state;
         device.percentage = deviceState.attributes.percentage || 0;
-        console.log(`🔄 Device state refreshed: ${device.percentage} is now ${device.status}`);
 
         if (device.percentage === 0 || device.status === 'off') {
           device.fanLevel = 'off';
@@ -120,7 +115,6 @@ export class DeviceManager {
       // device.status = "off";
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ Device state refresh aborted for device: ${device.model}`);
         return;
       }
       console.error(`❌ Device state refresh failed for ${device.model}:`, error);
@@ -129,7 +123,6 @@ export class DeviceManager {
 
   // Refresh all devices
   async refreshAllDevices(signal?: AbortSignal): Promise<void> {
-    console.log('🔄 Refreshing all devices');
     const promises = this.devices.map(device =>
       Promise.all([
         this.refreshDeviceState(device, signal),
@@ -137,12 +130,10 @@ export class DeviceManager {
         this.getAQI(device, signal),
         this.getPM25(device, signal)
       ]).then(() => {
-        console.log(`✅ Refreshed device: ${device.model}`);
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.devices));
       })
       .catch(error => {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          console.log(`❌ Refresh aborted for device: ${device.model}`);
           return;
         }
         console.error(`❌ Failed to refresh device ${device.model}:`, error);
@@ -164,14 +155,12 @@ export class DeviceManager {
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json = await response.json();
-      console.log(`✅ Fetched state for ${entity}:`, json);
       return {
         state: json.state || '',
         attributes: json.attributes || {}
       };
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ State fetch aborted for entity: ${entity}`);
         return { state: '', attributes: {} };
       }
       console.error('❌ getState error:', error);
@@ -189,7 +178,6 @@ export class DeviceManager {
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ Filter life fetch aborted for device: ${device.model}`);
         return;
       }
       console.error(`❌ Cannot parse filter life from sensor ${device.filterEntityId}:`, error);
@@ -203,11 +191,9 @@ export class DeviceManager {
       const aqiValue = parseInt(state);
       if (!isNaN(aqiValue)) {
         device.aqiValue = aqiValue;
-        console.log(`${device.aqiEntityId}: ${aqiValue}`);
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ AQI fetch aborted for device: ${device.model}`);
         return;
       }
       console.error(`❌ Cannot parse aqi from sensor ${device.aqiEntityId}:`, error);
@@ -221,11 +207,9 @@ export class DeviceManager {
       const pmValue = parseFloat(state);
       if (!isNaN(pmValue)) {
         device.pm25Value = pmValue;
-        console.log(`${device.pm25EntityId}: ${pmValue}`);
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ PM2.5 fetch aborted for device: ${device.model}`);
         return;
       }
       console.error(`❌ Cannot parse pm2.5 from sensor ${device.pm25EntityId}:`, error);
@@ -239,7 +223,6 @@ export class DeviceManager {
     const payload = { entity_id: 'input_boolean.auto_air_purifier' };
 
     await this.sendRequest(url, payload, async () => {
-      console.log(`✅ Auto mode set to ${enabled ? 'ON' : 'OFF'}`);
       const automationID = enabled ? 'auto_on_all_devices' : 'auto_off_all_devices';
       await this.triggerAutomation(automationID, signal);
 
@@ -253,7 +236,6 @@ export class DeviceManager {
       await this.offDevicePower(device);
       device.fanLevel = 'off';
       device.percentage = 0;
-      console.log(`✅ Device ${device.model} turned OFF`);
     } else {
       const url = `${this.habaseURL}/api/services/input_select/select_option`;
       const option = level.toUpperCase();
@@ -265,7 +247,6 @@ export class DeviceManager {
       await this.sendRequest(url, payload, () => {
         device.fanLevel = level;
         device.percentage = this.getPercentageForLevel(level);
-        console.log(`✅ Set fan level to ${option}`);
       });
     }
   }
@@ -296,14 +277,12 @@ export class DeviceManager {
       });
 
       if (response.ok) {
-        console.log('Request succeeded');
         completion();
       } else {
         console.error(`Request failed: ${response.status}`);
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ Request aborted for URL: ${url}`);
         return;
       }
       console.error('Request failed:', error);
@@ -325,13 +304,11 @@ export class DeviceManager {
       });
 
       if (response.ok) {
-        console.log(`✅ Triggered automation: ${automationID}`);
       } else {
         console.error(`❌ Automation trigger failed with status: ${response.status}`);
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log(`❌ Automation trigger aborted for: ${automationID}`);
         return;
       }
       console.error('❌ Automation trigger failed:', error);
