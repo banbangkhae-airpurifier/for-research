@@ -27,6 +27,7 @@ import {
   getLast24hTemp,
 } from "@/lib/mockData"
 import { getPM25GradientClassHex } from "@/lib/bgColor"
+import { set } from "react-hook-form"
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
@@ -102,12 +103,14 @@ export default function MyLineChart() {
     const sensor = new fetchSensor()
     const fetchData = async () => {
       try {
+        setLoading(true)
         await sensor.fetchAirQuality(controller.signal)
         const data = sensor.getAirQuality()
         if (data) setAirQuality(data)
       } catch (err) {
         console.error("Error:", err)
       }
+      finally { setLoading(false) }
     }
     fetchData()
     return () => controller.abort()
