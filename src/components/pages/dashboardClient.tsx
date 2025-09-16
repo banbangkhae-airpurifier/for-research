@@ -113,6 +113,7 @@ export default function MyLineChart() {
         setLoading(true)
         await sensor.fetchAirQuality(controller.signal)
         const data = sensor.getAirQuality()
+        await new Promise(res => setTimeout(res, 3000)) // เพิ่มดีเลย์ 1 วินาที
         if (data) setAirQuality(data)
       } catch (err) {
         console.error("Error:", err)
@@ -121,7 +122,7 @@ export default function MyLineChart() {
     }
     fetchData()
     return () => controller.abort()
-  }, [])
+  }, [range])
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -140,7 +141,10 @@ export default function MyLineChart() {
   }
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${getPM25GradientClassHex(airQuality?.aqi)}`}>
+    <div
+      className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)
+        }`}
+    >
       <div className="max-w-7xl mx-auto space-y-8 pb-15">
         <div className="pt-3">
           <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
