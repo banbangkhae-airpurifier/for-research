@@ -163,6 +163,7 @@ export default function HomeClient() {
 
     try {
       await manager.toggleDevicePower(selectedDevice);
+      if (refreshing) {console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));

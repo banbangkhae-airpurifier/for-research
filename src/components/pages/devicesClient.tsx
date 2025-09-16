@@ -151,6 +151,7 @@ export default function DevicesClient() {
 
     try {
       await manager.toggleDevicePower(selectedDevice);
+      if (refreshing) { console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -200,6 +201,7 @@ export default function DevicesClient() {
     const switchToAutoMode = mode === "auto";
     try {
       await manager.setAutoMode(switchToAutoMode);
+      if (refreshing) {console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -247,6 +249,7 @@ export default function DevicesClient() {
     );
 
     try {
+      if (refreshing) {console.log("Refresh In Queue"); return};
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -255,7 +258,7 @@ export default function DevicesClient() {
       setRefreshing(false);
       setDevices([...updatedDevices]);
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {s
+      if (err instanceof DOMException && err.name === 'AbortError') {
         return;
       }
       console.error("Error refreshing devices:", err);
