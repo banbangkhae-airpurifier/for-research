@@ -8,6 +8,32 @@ import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 
+// Function to store current timestamp in localStorage
+function storeTimestamp(key: string = 'lastAccessTime'): void {
+  const currentTime = new Date().toISOString();
+  localStorage.setItem(key, currentTime);
+}
+
+// Function to check time difference and remove other localStorage keys if > 10 minutes
+function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
+  const storedTime = localStorage.getItem(timeKey);
+  
+  if (storedTime) {
+    const storedDate = new Date(storedTime);
+    const currentDate = new Date();
+    
+    // Calculate time difference in minutes
+    const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
+    
+    // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
+    if (timeDifference > 10) {
+      Object.keys(localStorage)
+        .filter(key => key !== timeKey)
+        .forEach(key => localStorage.removeItem(key));
+    }
+  }
+}
+
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
   const STORAGE_KEY = 'device_manager_state';
@@ -26,6 +52,7 @@ export default function DevicesClient() {
       return [];
     }
     try {
+      checkAndClearLocalStorage();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored) as Device[];
@@ -48,6 +75,7 @@ export default function DevicesClient() {
   // Save devices to localStorage when they change
   useEffect(() => {
     try {
+      storeTimestamp();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
       manager.setDevices(devices);
     } catch (error) {
@@ -95,11 +123,11 @@ export default function DevicesClient() {
 
   // Initialize device states
   useEffect(() => {
-    const controller = new AbortController();
+    let controller = new AbortController();
 
-    const fetchData = async () => {
+    const fetchData = async (signal: AbortSignal) => {
       try {
-        await manager.refreshAllDevices(controller.signal);
+        await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
       } catch (err) {
@@ -115,20 +143,23 @@ export default function DevicesClient() {
     setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
 
     if (!localStorage.getItem(STORAGE_KEY)) {
-      fetchData();
+      fetchData(controller.signal);
     } else {
       manager.setDevices(devices);
     }
 
-    // const fetchInterval = setInterval(() => {
-    //   console.log('🔄 Fetching devices every 30 seconds');
-    //   controller.abort();
-    //   controller = new AbortController();
-    //   fetchData();
-    // }, 30 * 1000);
+
+    const fetchInterval = setInterval(() => {
+      if (!refreshing) {
+        console.log('🔄 Fetching devices every 15 seconds');
+        controller = new AbortController();
+        fetchData(controller.signal);
+      }
+
+    }, 15 * 1000);
 
     return () => {
-      // clearInterval(fetchInterval);
+      clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
@@ -204,7 +235,7 @@ export default function DevicesClient() {
       if (refreshing) {console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await manager.refreshAllDevices();
       const updatedDevices = manager.getDevices();
       setRefreshing(false);

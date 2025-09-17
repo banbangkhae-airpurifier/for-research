@@ -12,6 +12,32 @@ import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 
+// Function to store current timestamp in localStorage
+function storeTimestamp(key: string = 'lastAccessTime'): void {
+  const currentTime = new Date().toISOString();
+  localStorage.setItem(key, currentTime);
+}
+
+// Function to check time difference and remove other localStorage keys if > 10 minutes
+function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
+  const storedTime = localStorage.getItem(timeKey);
+  
+  if (storedTime) {
+    const storedDate = new Date(storedTime);
+    const currentDate = new Date();
+    
+    // Calculate time difference in minutes
+    const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
+    
+    // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
+    if (timeDifference > 10) {
+      Object.keys(localStorage)
+        .filter(key => key !== timeKey)
+        .forEach(key => localStorage.removeItem(key));
+    }
+  }
+}
+
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
   const STORAGE_KEY = 'device_manager_state';
@@ -29,6 +55,7 @@ export default function HomeClient() {
       return [];
     }
     try {
+      checkAndClearLocalStorage();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored) as Device[];
@@ -64,6 +91,7 @@ export default function HomeClient() {
       if (!isBrowser) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+        storeTimestamp();
         manager.setDevices(devices);
       } catch (error) {
         console.error('❌ Failed to save devices to localStorage:', error);
@@ -112,7 +140,7 @@ export default function HomeClient() {
   }, [manager]);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let controller = new AbortController();
 
     const fetchData = async (signal: AbortSignal) => {
       try {
@@ -134,14 +162,17 @@ export default function HomeClient() {
       manager.setDevices(devices);
     }
 
-    // const fetchInterval = setInterval(() => {
-    //   console.log('🔄 Fetching devices every 30 seconds');
-    //   controller = new AbortController();
-    //   fetchData(controller.signal);
-    // }, 30 * 1000);
+    const fetchInterval = setInterval(() => {
+      if (!refreshing) {
+        console.log('🔄 Fetching devices every 15 seconds');
+        controller = new AbortController();
+        fetchData(controller.signal);
+      }
+
+    }, 15 * 1000);
 
     return () => {
-      // clearInterval(fetchInterval);
+      clearInterval(fetchInterval);
       controller.abort();
       manager.destroy();
     };
@@ -163,7 +194,7 @@ export default function HomeClient() {
 
     try {
       await manager.toggleDevicePower(selectedDevice);
-      if (refreshing) {console.log("Refresh IN Queue"); return; }
+      if (refreshing) { console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
