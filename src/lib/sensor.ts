@@ -47,8 +47,8 @@ export class fetchSensor {
 
   // Fetch AQI / PM2.5 from OpenWeather
     async fetchAirQuality(signal?: AbortSignal): Promise<void> {
-        const pm25 = await this.getSensor("sensor.dust_pole_pm2_5",signal) || 0;
-        const temp = await this.getSensor("sensor.dust_pole_temperature",signal) || 0;
+        const pm25 = await this.getSensor("sensor.dust_pole_pm2_5_2",signal) || 0;
+        const temp = await this.getSensor("sensor.dust_pole_temperature_2",signal) || 0;
         this.airQuality = {
             location: 'บ้านผู้สูงอายุบางแค 2',
             city: 'Bangkok, Bangkae',

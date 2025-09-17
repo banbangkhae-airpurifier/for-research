@@ -6,14 +6,14 @@ export const getPM25GradientClassHex = (aqi: number | null | undefined): string 
 }
 
 export const getAQIBadgeColor = (aqi: number) => {
-    if (aqi <= 50) return "bg-green-100 text-green-800";
-    if (aqi <= 100) return "bg-yellow-100 text-yellow-800";
+    if (aqi < 50) return "bg-green-100 text-green-800";
+    if (aqi < 100) return "bg-yellow-100 text-yellow-800";
     return "bg-red-100 text-red-800";
 };
 
 export const getAQIStatus = (aqi: number | null): string => {
   if (aqi === null) return "-"
-  if (aqi < 51) return "Good"
-  if (aqi < 101) return "Moderate"
+  if (aqi < 50) return "Good"
+  if (aqi < 100) return "Moderate"
   return "Unhealthy"
 }
