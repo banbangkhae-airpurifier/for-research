@@ -91,7 +91,6 @@ export default function HomeClient() {
       if (!isBrowser) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
-        storeTimestamp();
         manager.setDevices(devices);
       } catch (error) {
         console.error('❌ Failed to save devices to localStorage:', error);
@@ -141,6 +140,8 @@ export default function HomeClient() {
 
   useEffect(() => {
     let controller = new AbortController();
+    storeTimestamp();
+
 
     const fetchData = async (signal: AbortSignal) => {
 

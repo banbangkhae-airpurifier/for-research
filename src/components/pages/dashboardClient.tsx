@@ -38,7 +38,6 @@ export default function MyLineChart() {
   const [combinedData, setCombinedData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-
   // Detect mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640)
@@ -65,7 +64,6 @@ export default function MyLineChart() {
         } else if (range === "7d") {
           pm25Data = await get4Week1WeekPole1()
           pm25Data2 = await get4Week1WeekPole2()
-          // ⚠️ ยังไม่มี both สำหรับ 7 วัน ถ้าจะใช้ต้องสร้างเหมือนกัน
           const rawTemp = await getWeeklyTemp()
           tempData = rawTemp.map((item: any) => ({
             time: item.WeekStartingDate,
@@ -74,7 +72,7 @@ export default function MyLineChart() {
         } else {
           pm25Data = await get30Day1DayPole1()
           pm25Data2 = await get30Day1DayPole2()
-          pm25Both = await get30Day1DayBoth()   // ✅ both สำหรับ 1 เดือน
+          pm25Both = await get30Day1DayBoth()
           const rawTemp = await get30DayTemp()
           tempData = rawTemp.map((item: any) => ({
             time: item.WeekStartingDate ?? item.ReportDate ?? item.time,
@@ -86,7 +84,7 @@ export default function MyLineChart() {
           time: item.time,
           pm25_1: item.value ?? null,
           pm25_2: pm25Data2[idx]?.value ?? null,
-          pm25_avg: pm25Both[idx]?.value ?? null,  // ✅ ใช้จาก API both
+          pm25_avg: pm25Both[idx]?.value ?? null,
           temp: tempData[idx]?.value ?? null,
           humidity: tempData[idx]?.humidity ?? null,
         }))
@@ -102,8 +100,6 @@ export default function MyLineChart() {
     fetchData()
   }, [range])
 
-
-
   // Fetch live air quality
   useEffect(() => {
     const controller = new AbortController()
@@ -113,7 +109,7 @@ export default function MyLineChart() {
         setLoading(true)
         await sensor.fetchAirQuality(controller.signal)
         const data = sensor.getAirQuality()
-        await new Promise(res => setTimeout(res, 3000)) // เพิ่มดีเลย์ 1 วินาที
+        await new Promise(res => setTimeout(res, 3000))
         if (data) setAirQuality(data)
       } catch (err) {
         console.error("Error:", err)
@@ -140,10 +136,37 @@ export default function MyLineChart() {
     return null
   }
 
+
+  const getPM25Color = (value: number | null) => {
+    if (value === null || value === undefined) return '#d1d5db'; // Gray for missing data
+    if (value <= 12) return '#22c55e'; // Green (Good)
+    if (value <= 35.4) return '#facc15'; // Yellow (Moderate)
+    if (value <= 55.4) return '#f97316'; // Orange (Unhealthy for Sensitive)
+    if (value <= 150.4) return '#ef4444'; // Red (Unhealthy)
+    return '#a855f7'; // Purple (Very Unhealthy/Hazardous)
+  };
+  // Custom dot renderer for dynamic PM2.5-based colors
+  const CustomDot = (props: any) => {
+    const { cx, cy, value } = props
+    if (!value) return null
+    const color = getPM25Color(value) // Use PM2.5 value for color
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={isMobile ? 3 : 5}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={2}
+      />
+    )
+  }
+
+
+
   return (
     <div
-      className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)
-        }`}
+      className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)}`}
     >
       <div className="max-w-7xl mx-auto space-y-8 pb-15">
         <div className="pt-3">
@@ -187,7 +210,6 @@ export default function MyLineChart() {
                 Average
               </button>
             </div>
-
 
             <div className="w-full h-80 mb-12">
               <div className="mb-6 pt-3">
@@ -262,7 +284,6 @@ export default function MyLineChart() {
                         </linearGradient>
                       </defs>
                     </BarChart>
-
                   ) : (
                     <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -283,7 +304,7 @@ export default function MyLineChart() {
                           dataKey="pm25_1"
                           stroke="#ef4444"
                           strokeWidth={3}
-                          dot={{ r: isMobile ? 3 : 5, fill: "#ef4444", strokeWidth: 2, stroke: "#fff" }}
+                          dot={<CustomDot />}
                           activeDot={{ r: 6, fill: "#ef4444" }}
                           name="PM2.5 Sensor 1"
                         />
@@ -295,7 +316,7 @@ export default function MyLineChart() {
                           dataKey="pm25_2"
                           stroke="#10b981"
                           strokeWidth={3}
-                          dot={{ r: isMobile ? 3 : 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
+                          dot={<CustomDot />}
                           activeDot={{ r: 6, fill: "#10b981" }}
                           name="PM2.5 Sensor 2"
                         />
@@ -307,7 +328,7 @@ export default function MyLineChart() {
                           dataKey="pm25_avg"
                           stroke="#6366f1"
                           strokeWidth={3}
-                          dot={{ r: isMobile ? 3 : 5, fill: "#6366f1", strokeWidth: 2, stroke: "#fff" }}
+                          dot={<CustomDot />}
                           activeDot={{ r: 6, fill: "#6366f1" }}
                           name="PM2.5 Average"
                         />
@@ -318,7 +339,6 @@ export default function MyLineChart() {
               )}
             </div>
           </div>
-
 
           {/* Temperature Chart */}
           <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-4">
@@ -410,7 +430,6 @@ export default function MyLineChart() {
                     </tr>
                   ))
                 ) : (
-
                   combinedData.map((row, idx) => (
                     <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-900 font-medium">{row.time}</td>
