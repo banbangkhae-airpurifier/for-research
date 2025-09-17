@@ -142,7 +142,7 @@ export default function DevicesClient() {
     setGlobalMode(devices[0]?.mode || "auto");
     setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
 
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (devices == devicesData) {
       fetchData(controller.signal);
     } else {
       manager.setDevices(devices);

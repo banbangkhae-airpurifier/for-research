@@ -159,7 +159,7 @@ export default function HomeClient() {
 
     checkAndClearLocalStorage();
 
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (devices == devicesData) {
       fetchData(controller.signal);
     } else {
       manager.setDevices(devices);

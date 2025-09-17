@@ -2,7 +2,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { NextAuthOptions } from "next-auth";
 
 // Define Home Assistant URL and token
-const habaseURL: string = 'https://ewid931c2fcm2rfzccpasgrhblklbwod.ui.nabu.casa'; // Replace with actual URL
+const habaseURL: string = 'https://ob2s2wfi0mp5smcvcbz8rydvzt2hlvwk.ui.nabu.casa'; // Replace with actual URL
 const hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
 
 // Function to fetch allowed emails from Home Assistant
