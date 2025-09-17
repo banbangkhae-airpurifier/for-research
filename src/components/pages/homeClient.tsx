@@ -297,7 +297,7 @@ export default function HomeClient() {
           </div>
           <p className="text-lg mb-4">μg/m³</p>
           <Badge className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}>
-            AQI {airQuality.aqi}
+            Temp {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5/9).toFixed(2) : 0} °C 
           </Badge>
         </section>
 
