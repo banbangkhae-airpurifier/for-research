@@ -21,14 +21,14 @@ function storeTimestamp(key: string = 'lastAccessTime'): void {
 // Function to check time difference and remove other localStorage keys if > 10 minutes
 function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
   const storedTime = localStorage.getItem(timeKey);
-  
+
   if (storedTime) {
     const storedDate = new Date(storedTime);
     const currentDate = new Date();
-    
+
     // Calculate time difference in minutes
     const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
-    
+
     // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
     if (timeDifference > 10) {
       Object.keys(localStorage)
@@ -143,6 +143,7 @@ export default function HomeClient() {
     let controller = new AbortController();
 
     const fetchData = async (signal: AbortSignal) => {
+
       try {
         await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
@@ -155,6 +156,8 @@ export default function HomeClient() {
         console.error("Error:", err);
       }
     };
+
+    checkAndClearLocalStorage();
 
     if (!localStorage.getItem(STORAGE_KEY)) {
       fetchData(controller.signal);
@@ -238,8 +241,8 @@ export default function HomeClient() {
         {/* Devices Section Skeleton */}
         <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
           <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, index) => (
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
               <Card key={index} className="bg-white">
                 <CardContent className="p-3">
                   <div className="flex flex-col items-center gap-3">
@@ -297,7 +300,7 @@ export default function HomeClient() {
           </div>
           <p className="text-lg mb-4">μg/m³</p>
           <Badge className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}>
-            Temp {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5/9).toFixed(2) : 0} °C 
+            Temp {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5 / 9).toFixed(2) : 0} °C
           </Badge>
         </section>
 
@@ -305,7 +308,7 @@ export default function HomeClient() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices
           </h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             {devices.map((device) => (
               <Card
                 key={device.id}

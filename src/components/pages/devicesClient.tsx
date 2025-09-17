@@ -342,8 +342,8 @@ export default function DevicesClient() {
         {/* Devices Grid Skeleton */}
         <section className="bg-white/20 rounded-t-3xl p-6 -mx-4">
           <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, index) => (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            {[...Array(4)].map((_, index) => (
               <div key={index} className="bg-white rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
@@ -469,7 +469,7 @@ export default function DevicesClient() {
           <h2 className="text-2xl font-bold text-white mb-6">
             Devices ({devices.length})
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
             {devices.map((device) => (
               <div
                 key={device.id}
