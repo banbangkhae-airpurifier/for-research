@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_KEY = "$2a$10$VrorE5pMqe8yol4eLLO2M.L43ra2apMD1UHsMYm5.uNUuQwOiI4Xy";
+const API_KEY = "$2a$10$COVfkQUkHHOSQocqbdFwTuO8/aXZe7lQYCUltOrovXvKtbhXX9h5m";
 
 async function getDataFromBin(binId: string, valueKey: string, timeKey: string = "ReportDate") {
   const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
@@ -9,7 +9,7 @@ async function getDataFromBin(binId: string, valueKey: string, timeKey: string =
     const json = await res.json();
     return json.record.map((item: any) => ({
       time: item[timeKey],
-      value: item[valueKey] ?? null
+      value: item[valueKey] != null
         ? Number(item[valueKey].toFixed(2))
         : null
     }));
@@ -19,89 +19,22 @@ async function getDataFromBin(binId: string, valueKey: string, timeKey: string =
   }
 }
 
-// ==================== PM2.5 Sensor 1 ====================
-async function get7Day30minPole1() {
-  const url = `https://api.jsonbin.io/v3/b/68c7bf15ae596e708fef1f6a/latest`;
-  try {
-    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
-    const json = await res.json();
-    return json.record.map((item: any) => ({
-      time: item.ReportTime, // รวมวันที่กับเวลา
-      value: item.AveragePM25 != null
-        ? Number(item.AveragePM25?.toFixed(2))
-        : null
-    }));
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
+// ==================== PM2.5 Sensor ====================
+// PM2.5 by date (30 days)
+export const get30Day1DayPM25 = () => getDataFromBin("68cac8cfd0ea881f40811a8d", "AveragePM25", "ReportDate");
 
-async function get7Day30minPole2() {
-  const url = `https://api.jsonbin.io/v3/b/68c7bf49d0ea881f407e509e/latest`;
-  try {
-    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
-    const json = await res.json();
-    return json.record.map((item: any) => ({
-      time: item.ReportTime,
-      value: item.AveragePM25 ?? null
-        ? Number(item.AveragePM25?.toFixed(2))
-        : null
-    }));
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
+// PM2.5 by day (weekly)
+export const get7Day1DayPM25 = () => getDataFromBin("68cac914d0ea881f40811aeb", "AveragePM25", "DayOfWeek");
 
-async function get7Day30minBoth() {
-  const url = `https://api.jsonbin.io/v3/b/68c7bf98ae596e708fef1ff5/latest`;
-  try {
-    const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
-    const json = await res.json();
-    return json.record.map((item: any) => ({
-      time: item.ReportTime,
-      value: item.AveragePM25 ?? null
-        ? Number(item.AveragePM25?.toFixed(2))
-        : null
-    }));
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
-
-// ==================== PM2.5 Sensor 1 Month ====================
-export const get30Day1DayPole1 = () => getDataFromBin("68c7cc9843b1c97be943705a", "AveragePM25", "ReportDate");
-export const get30Day1DayPole2 = () => getDataFromBin("68c7cce4d0ea881f407e5e6b", "AveragePM25", "ReportDate");
-export const get30Day1DayBoth = () => getDataFromBin("68c7cd4343b1c97be94370d6", "AveragePM25", "ReportDate");
-
-// ==================== PM2.5 Weekly ====================
-export const get4Week1WeekPole1 = () => getDataFromBin("68c7cf3ed0ea881f407e6022", "AveragePM25", "WeekStartDate");
-export const get4Week1WeekPole2 = () => getDataFromBin("68c7cf5ed0ea881f407e6049", "AveragePM25", "WeekStartDate");
+// PM2.5 by time (30-min intervals in 1 day)
+export const get24h30minPM25 = () => getDataFromBin("68cac94cae596e708ff1e64f", "AveragePM25", "TimeSlot");
 
 // ==================== Temperature ====================
-export const get7DayTemp = () => getDataFromBin("68c7cfcdd0ea881f407e60b2", "AverageCelsius", "ReportDate");
-export const get30DayTemp = () => getDataFromBin("68c7cfeeae596e708fef2f7a", "AverageCelsius", "ReportDate");
-export const getWeeklyTemp = () => getDataFromBin("68c7d010ae596e708fef2fa7", "WeeklyAverageCelsius", "WeekStartingDate");
+// Temp by date (30 days)
+export const get30DayTemp = () => getDataFromBin("68cac8e7d0ea881f40811aa7", "AverageCelsius", "ReportDate");
 
-// ==================== Last 24h ====================
-export const getLast24hPole1 = async () => {
-  const allData = await get7Day30minPole1();
-  return allData.slice(-49);
-};
+// Temp by day (weekly)
+export const get7DayTemp = () => getDataFromBin("68cac932ae596e708ff1e627", "AverageCelsius", "DayOfWeek");
 
-export const getLast24hPole2 = async () => {
-  const allData = await get7Day30minPole2();
-  return allData.slice(-49);
-};
-
-export const getLast24hBoth = async () => {
-  const allData = await get7Day30minBoth();
-  return allData.slice(-49);
-};
-
-export const getLast24hTemp = async () => {
-  const allData = await get7DayTemp();
-  return allData.slice(-49);
-};
+// Temp by time (30-min intervals in 1 day)
+export const get24h30minTemp = () => getDataFromBin("68cac97a43b1c97be9462a0d", "AverageCelsius", "TimeSlot");
