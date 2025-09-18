@@ -136,7 +136,6 @@ export default function MyLineChart() {
     return null
   }
 
-
   const getPM25Color = (value: number | null) => {
     if (value === null || value === undefined) return '#d1d5db'; // Gray for missing data
     if (value <= 12) return '#22c55e'; // Green (Good)
@@ -144,7 +143,15 @@ export default function MyLineChart() {
     if (value <= 55.4) return '#f97316'; // Orange (Unhealthy for Sensitive)
     if (value <= 150.4) return '#ef4444'; // Red (Unhealthy)
     return '#a855f7'; // Purple (Very Unhealthy/Hazardous)
-  };
+  }
+
+  const getTempColor = (value: number | null) => {
+    if (value === null || value === undefined) return '#d1d5db'; // Gray for missing data
+    if (value <= 28) return '#22c55e'; // Green (Good)
+    if (value <= 34) return '#facc15'; // Yellow (Moderate)
+    return '#ef4444'; // Red (Unhealthy)
+  }
+
   // Custom dot renderer for dynamic PM2.5-based colors
   const CustomDot = (props: any) => {
     const { cx, cy, value } = props
@@ -161,8 +168,6 @@ export default function MyLineChart() {
       />
     )
   }
-
-
 
   return (
     <div
@@ -235,7 +240,6 @@ export default function MyLineChart() {
                       <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-
                       {pmView === "1" && (
                         <Bar
                           dataKey="pm25_1"
@@ -244,7 +248,6 @@ export default function MyLineChart() {
                           radius={[4, 4, 0, 0]}
                         />
                       )}
-
                       {pmView === "2" && (
                         <Bar
                           dataKey="pm25_2"
@@ -253,7 +256,6 @@ export default function MyLineChart() {
                           radius={[4, 4, 0, 0]}
                         />
                       )}
-
                       {pmView === "Average" && (
                         <>
                           <Bar
@@ -268,7 +270,6 @@ export default function MyLineChart() {
                             radius={[4, 4, 0, 0]} />
                         </>
                       )}
-
                       <defs>
                         <linearGradient id="gradient1" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
@@ -297,42 +298,65 @@ export default function MyLineChart() {
                       <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-
                       {pmView === "1" && (
                         <Line
                           type="monotone"
                           dataKey="pm25_1"
-                          stroke="#ef4444"
+                          stroke="url(#gradientPM25)"
                           strokeWidth={3}
                           dot={<CustomDot />}
-                          activeDot={{ r: 6, fill: "#ef4444" }}
+                          activeDot={{ r: 6, fill: "#ffffff" }}
                           name="PM2.5 Sensor 1"
                         />
                       )}
-
                       {pmView === "2" && (
                         <Line
                           type="monotone"
                           dataKey="pm25_2"
-                          stroke="#10b981"
+                          stroke="url(#gradientPM25)"
                           strokeWidth={3}
                           dot={<CustomDot />}
                           activeDot={{ r: 6, fill: "#10b981" }}
                           name="PM2.5 Sensor 2"
                         />
                       )}
-
                       {pmView === "Average" && (
                         <Line
                           type="monotone"
                           dataKey="pm25_avg"
-                          stroke="#6366f1"
+                          stroke="url(#gradientPM25)"
                           strokeWidth={3}
                           dot={<CustomDot />}
                           activeDot={{ r: 6, fill: "#6366f1" }}
                           name="PM2.5 Average"
                         />
                       )}
+                      <defs>
+                        <linearGradient id="gradientPM25" x1="0" y1="0" x2="1" y2="0">
+                          {combinedData
+                            .map((item, index) => ({
+                              value: item.pm25_1,
+                              index,
+                            }))
+                            .filter(item => item.value !== null && item.value !== undefined)
+                            .map((item, i, filtered) => (
+                              <stop
+                                key={i}
+                                offset={`${(i / (filtered.length - 1)) * 100}%`}
+                                stopColor={getPM25Color(item.value)}
+                                stopOpacity={0.8}
+                              />
+                            ))}
+                        </linearGradient>
+                        <linearGradient id="gradient2" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.6} />
+                        </linearGradient>
+                        <linearGradient id="gradientAvg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.6} />
+                        </linearGradient>
+                      </defs>
                     </LineChart>
                   )}
                 </ResponsiveContainer>
@@ -367,11 +391,23 @@ export default function MyLineChart() {
                       <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-                      <Bar dataKey="temp" fill="url(#tempGradient)" name="Temperature" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="temp" fill="url(#gradientTemp)" name="Temperature" radius={[4, 4, 0, 0]} />
                       <defs>
-                        <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6} />
+                        <linearGradient id="gradientTemp" x1="0" y1="0" x2="1" y2="0">
+                          {combinedData
+                            .map((item, index) => ({
+                              value: item.temp,
+                              index,
+                            }))
+                            .filter(item => item.value !== null && item.value !== undefined)
+                            .map((item, i, filtered) => (
+                              <stop
+                                key={i}
+                                offset={`${(i / (filtered.length - 1)) * 100}%`}
+                                stopColor={getTempColor(item.value)}
+                                stopOpacity={0.8}
+                              />
+                            ))}
                         </linearGradient>
                       </defs>
                     </BarChart>
