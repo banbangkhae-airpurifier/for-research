@@ -12,31 +12,7 @@ import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 
-// Function to store current timestamp in localStorage
-function storeTimestamp(key: string = 'lastAccessTime'): void {
-  const currentTime = new Date().toISOString();
-  localStorage.setItem(key, currentTime);
-}
 
-// Function to check time difference and remove other localStorage keys if > 10 minutes
-function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
-  const storedTime = localStorage.getItem(timeKey);
-
-  if (storedTime) {
-    const storedDate = new Date(storedTime);
-    const currentDate = new Date();
-
-    // Calculate time difference in minutes
-    const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
-
-    // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
-    if (timeDifference > 10) {
-      Object.keys(localStorage)
-        .filter(key => key !== timeKey)
-        .forEach(key => localStorage.removeItem(key));
-    }
-  }
-}
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
@@ -47,6 +23,8 @@ export default function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [deviceRefreshing, setDeviceRefreshing] = useState(false);
+  const [firsTimeRefresh, setFirstTimeRefresh] = useState(false);
 
   // Device State
   const isBrowser = typeof window !== 'undefined';
@@ -83,6 +61,35 @@ export default function HomeClient() {
     ? (selectedDevice.status === "on")
     : false;
 
+  // Function to store current timestamp in localStorage
+  function storeTimestamp(key: string = 'lastAccessTime'): void {
+    const currentTime = new Date().toISOString();
+    localStorage.setItem(key, currentTime);
+  }
+
+  // Function to check time difference and remove other localStorage keys if > 10 minutes
+  function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
+    const storedTime = localStorage.getItem(timeKey);
+
+    if (storedTime) {
+      const storedDate = new Date(storedTime);
+      const currentDate = new Date();
+
+      // Calculate time difference in minutes
+      const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
+
+      // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
+      if (timeDifference > 10) {
+        Object.keys(localStorage)
+          .filter(key => key !== timeKey)
+          .forEach(key => localStorage.removeItem(key));
+        setFirstTimeRefresh(true);
+      }
+    } else {
+      setFirstTimeRefresh(true);
+    }
+  }
+
   // ========== EFFECTS ==========
 
   // Save devices to localStorage when they change
@@ -98,7 +105,6 @@ export default function HomeClient() {
     }
 
     saveDevices();
-
   }, [devices]);
 
   // Fetch Air Quality and update time
@@ -140,15 +146,16 @@ export default function HomeClient() {
 
   useEffect(() => {
     let controller = new AbortController();
+    checkAndClearLocalStorage();
     storeTimestamp();
 
-
     const fetchData = async (signal: AbortSignal) => {
-
       try {
+        if (firsTimeRefresh) { setDeviceRefreshing(true) };
         await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
+        setDeviceRefreshing(false);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           return;
@@ -158,9 +165,7 @@ export default function HomeClient() {
       }
     };
 
-    checkAndClearLocalStorage();
-
-    if (devices == devicesData) {
+    if (devices == devicesData || !devices) {
       fetchData(controller.signal);
     } else {
       manager.setDevices(devices);
@@ -172,7 +177,6 @@ export default function HomeClient() {
         controller = new AbortController();
         fetchData(controller.signal);
       }
-
     }, 15 * 1000);
 
     return () => {
@@ -240,27 +244,32 @@ export default function HomeClient() {
         </section>
 
         {/* Devices Section Skeleton */}
-        <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
-          <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, index) => (
-              <Card key={index} className="bg-white">
-                <CardContent className="p-3">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
-                    <div className="w-full">
-                      <div className="h-4 w-3/4 mx-auto bg-gray-300 rounded animate-pulse mb-2"></div>
-                      <div className="h-3 w-1/2 mx-auto bg-gray-300 rounded animate-pulse"></div>
-                    </div>
-                    <div className="h-3 w-16 bg-gray-300 rounded animate-pulse"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <DevicesSkeletonLoader />
       </div>
     </div>
+  );
+
+  // Device List Skeleton Loader
+  const DevicesSkeletonLoader = () => (
+    <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
+      <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <Card key={index} className="bg-white">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
+                <div className="w-full">
+                  <div className="h-4 w-3/4 mx-auto bg-gray-300 rounded animate-pulse mb-2"></div>
+                  <div className="h-3 w-1/2 mx-auto bg-gray-300 rounded animate-pulse"></div>
+                </div>
+                <div className="h-3 w-16 bg-gray-300 rounded animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
   );
 
   // ========== CONDITIONAL RENDERING ==========
@@ -305,45 +314,49 @@ export default function HomeClient() {
           </Badge>
         </section>
 
-        <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Devices
-          </h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {devices.map((device) => (
-              <Card
-                key={device.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => handleDeviceClick(device)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex flex-col text-center items-center gap-3">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                        }`}
-                    >
-                      <Wind
-                        className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
+        {deviceRefreshing ? (
+          <DevicesSkeletonLoader />
+        ) : (
+          <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Devices
+            </h2>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              {devices.map((device) => (
+                <Card
+                  key={device.id}
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleDeviceClick(device)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-col text-center items-center gap-3">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
                           }`}
-                      />
+                      >
+                        <Wind
+                          className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
+                            }`}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm sm:text-base">
+                          {device.model}
+                        </h3>
+                        <p className="text-gray-600 text-xs sm:text-sm">
+                          {device.location}
+                        </p>
+                      </div>
+                      <div>
+                        <StatusIndicator isOn={device.status === "on"} />
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-sm sm:text-base">
-                        {device.model}
-                      </h3>
-                      <p className="text-gray-600 text-xs sm:text-sm">
-                        {device.location}
-                      </p>
-                    </div>
-                    <div>
-                      <StatusIndicator isOn={device.status === "on"} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <DeviceDetail

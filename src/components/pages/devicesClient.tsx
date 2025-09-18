@@ -8,32 +8,6 @@ import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 
-// Function to store current timestamp in localStorage
-function storeTimestamp(key: string = 'lastAccessTime'): void {
-  const currentTime = new Date().toISOString();
-  localStorage.setItem(key, currentTime);
-}
-
-// Function to check time difference and remove other localStorage keys if > 10 minutes
-function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
-  const storedTime = localStorage.getItem(timeKey);
-  
-  if (storedTime) {
-    const storedDate = new Date(storedTime);
-    const currentDate = new Date();
-    
-    // Calculate time difference in minutes
-    const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
-    
-    // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
-    if (timeDifference > 10) {
-      Object.keys(localStorage)
-        .filter(key => key !== timeKey)
-        .forEach(key => localStorage.removeItem(key));
-    }
-  }
-}
-
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
   const STORAGE_KEY = 'device_manager_state';
@@ -44,6 +18,37 @@ export default function DevicesClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [deviceRefreshing, setDeviceRefreshing] = useState(false);
+  const [firsTimeRefresh, setFirstTimeRefresh] = useState(false);
+
+  // Function to store current timestamp in localStorage
+  function storeTimestamp(key: string = 'lastAccessTime'): void {
+    const currentTime = new Date().toISOString();
+    localStorage.setItem(key, currentTime);
+  }
+
+  // Function to check time difference and remove other localStorage keys if > 10 minutes
+  function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
+    const storedTime = localStorage.getItem(timeKey);
+
+    if (storedTime) {
+      const storedDate = new Date(storedTime);
+      const currentDate = new Date();
+
+      // Calculate time difference in minutes
+      const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
+
+      // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
+      if (timeDifference > 10) {
+        Object.keys(localStorage)
+          .filter(key => key !== timeKey)
+          .forEach(key => localStorage.removeItem(key));
+        setFirstTimeRefresh(true);
+      }
+    } else {
+      setFirstTimeRefresh(true);
+    }
+  }
 
   // Device State
   const isBrowser = typeof window !== 'undefined';
@@ -75,7 +80,6 @@ export default function DevicesClient() {
   // Save devices to localStorage when they change
   useEffect(() => {
     try {
-      storeTimestamp();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
       manager.setDevices(devices);
     } catch (error) {
@@ -124,12 +128,16 @@ export default function DevicesClient() {
   // Initialize device states
   useEffect(() => {
     let controller = new AbortController();
+    checkAndClearLocalStorage();
+    storeTimestamp();
 
     const fetchData = async (signal: AbortSignal) => {
       try {
+        if (firsTimeRefresh) { setDeviceRefreshing(true) };
         await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
+        setDeviceRefreshing(false);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           return;
@@ -142,12 +150,11 @@ export default function DevicesClient() {
     setGlobalMode(devices[0]?.mode || "auto");
     setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
 
-    if (devices == devicesData) {
+    if (devices == devicesData || !devices) {
       fetchData(controller.signal);
     } else {
       manager.setDevices(devices);
     }
-
 
     const fetchInterval = setInterval(() => {
       if (!refreshing) {
@@ -155,7 +162,6 @@ export default function DevicesClient() {
         controller = new AbortController();
         fetchData(controller.signal);
       }
-
     }, 15 * 1000);
 
     return () => {
@@ -232,7 +238,7 @@ export default function DevicesClient() {
     const switchToAutoMode = mode === "auto";
     try {
       await manager.setAutoMode(switchToAutoMode);
-      if (refreshing) {console.log("Refresh IN Queue"); return; }
+      if (refreshing) { console.log("Refresh IN Queue"); return; }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -280,7 +286,7 @@ export default function DevicesClient() {
     );
 
     try {
-      if (refreshing) {console.log("Refresh In Queue"); return};
+      if (refreshing) { console.log("Refresh In Queue"); return };
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -312,7 +318,6 @@ export default function DevicesClient() {
     setSelectedDevice(device);
     setDevicePower(device.status === "on");
     window.scrollTo({ top: 0, behavior: "smooth" });
-
   };
 
   const handleControlPanelToggle = () => {
@@ -367,6 +372,35 @@ export default function DevicesClient() {
         </section>
       </div>
     </div>
+  );
+
+  // ========== DEVICES SKELETON LOADING ==========
+  const DevicesSkeletonLoader = () => (
+    <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
+      <div className="h-6 w-32 bg-gray-300 rounded animate-pulse mb-6"></div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="bg-white rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-gray-300 rounded-full animate-pulse"></div>
+              <div className="flex-1">
+                <div className="h-5 w-3/4 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-4 w-1/2 bg-gray-300 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="h-3 w-3/4 bg-gray-300 rounded animate-pulse"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 
   // ========== CONDITIONAL RENDERING ==========
@@ -465,81 +499,85 @@ export default function DevicesClient() {
           </div>
         </section>
 
-        <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Devices ({devices.length})
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className="bg-white rounded-xl p-4 shadow cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => handleDeviceClick(device)}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                      }`}
-                  >
-                    <Wind
-                      className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
-                        }`}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{device.model}</h3>
-                    <p className="text-gray-600">{device.location}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Power
-                      className={`w-4 h-4 ${device.status === "on" ? "text-green-600" : "text-gray-400"
-                        }`}
-                    />
-                    <span>Status: {device.status === "on" ? "On" : "Off"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4" />
-                    <span>Filter: {device.filterLife}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    <span>Mode: {device.mode}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Fan className="w-4 h-4" />
-                    <span>Fan: {device.fanLevel}</span>
-                  </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Room AQI:</span>
-                    <span
-                      className={`font-semibold ${device.aqiValue < 51
-                        ? "text-green-600"
-                        : device.aqiValue < 101
-                          ? "text-yellow-600"
-                          : "text-red-600"
+        {deviceRefreshing ? (
+          <DevicesSkeletonLoader />
+        ) : (
+          <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Devices ({devices.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+              {devices.map((device) => (
+                <div
+                  key={device.id}
+                  className="bg-white rounded-xl p-4 shadow cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleDeviceClick(device)}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
                         }`}
                     >
-                      {device.aqiValue}
-                    </span>
+                      <Wind
+                        className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
+                          }`}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{device.model}</h3>
+                      <p className="text-gray-600">{device.location}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Power
+                        className={`w-4 h-4 ${device.status === "on" ? "text-green-600" : "text-gray-400"
+                          }`}
+                      />
+                      <span>Status: {device.status === "on" ? "On" : "Off"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Droplets className="w-4 h-4" />
+                      <span>Filter: {device.filterLife}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      <span>Mode: {device.mode}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Fan className="w-4 h-4" />
+                      <span>Fan: {device.fanLevel}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Room AQI:</span>
+                      <span
+                        className={`font-semibold ${device.aqiValue < 51
+                          ? "text-green-600"
+                          : device.aqiValue < 101
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                          }`}
+                      >
+                        {device.aqiValue}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-      <DeviceDetail
-        device={selectedDevice}
-        isOpen={!!selectedDevice}
-        onClose={handleCloseDeviceDetail}
-        onTogglePower={handleTogglePower}
-        devicePower={devicePower}
-      />
+        <DeviceDetail
+          device={selectedDevice}
+          isOpen={!!selectedDevice}
+          onClose={handleCloseDeviceDetail}
+          onTogglePower={handleTogglePower}
+          devicePower={devicePower}
+        />
+      </div>
     </div>
   );
 }
