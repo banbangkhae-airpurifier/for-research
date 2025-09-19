@@ -220,7 +220,7 @@ export default function MyLineChart() {
                         <Bar
                           dataKey="pm25_1"
                           fill="url(#gradientPM25)"
-                          name="PM2.5 Sensor 1"
+                          name="PM2.5 Sensor"
                           radius={[4, 4, 0, 0]}
                         />
                       )}
