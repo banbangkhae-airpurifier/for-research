@@ -29,7 +29,7 @@ import { getPM25Color, getPM25GradientClassHex, getTempColor } from "@/lib/bgCol
 import Information from "../sub-component/Information";
 
 export default function MyLineChart() {
-  const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
+  const [range, setRange] = useState<"1d" | "7d" | "1m">("7d")
   const [pmView,] = useState<"1">("1")
   const [isMobile, setIsMobile] = useState(false)
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
@@ -182,13 +182,13 @@ return (
         <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-10">
           {/* Range Buttons */}
           <div className="flex gap-2 mb-4">
-            {["1d", "7d", "1m"].map((r) => (
+            {["7d", "1m", "1d"].map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r as "1d" | "7d" | "1m")}
                 className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
               >
-                {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
+                {r === "1d" ? "Times" : r === "7d" ? "Days" : "Dates"}
               </button>
             ))}
           </div>
