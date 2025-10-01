@@ -9,11 +9,9 @@ export default function AQIStandardInfo() {
 
   // ข้อมูลเกณฑ์สี AQI
   const standards = [
-    { color: "bg-green-500", label: "ดี", range: "0 – 50" },
-    { color: "bg-yellow-400", label: "ปานกลาง", range: "51 – 100" },
-    { color: "bg-orange-400", label: "มีผลกระทบต่อสุขภาพบางกลุ่ม", range: "101 – 150" },
-    { color: "bg-red-500", label: "ไม่ดีต่อสุขภาพ", range: "151 – 200" },
-    { color: "bg-purple-600", label: "อันตราย", range: "201+" },
+    { color: "bg-green-500", label: "ดี", range: "0 - 9.0" },
+    { color: "bg-yellow-400", label: "ปานกลาง", range: "9.1 - 55.4" },
+    { color: "bg-red-500", label: "ไม่ดีต่อสุขภาพของผู้สูงอายุ", range: "55.5 +" },
   ];
 
   return (
