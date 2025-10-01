@@ -7,6 +7,7 @@ import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
+import Information from "../sub-component/Information";
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
@@ -417,12 +418,13 @@ export default function DevicesClient() {
   // ========== MAIN RENDER ==========
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
+      <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Devices</h1>
+          <h1 className="text-4xl font-bold mb-2">เครื่องฝอกอากาศ</h1>
           <div className="flex items-center gap-4 text-white/90">
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-              <span className="text-sm">Current AQI: </span>
+              <span className="text-sm">AQI ปัจจุบัน: </span>
               <span className="font-bold text-lg">{airQuality.aqi ?? "-"}</span>
               <span className="text-sm ml-2">({getAQIStatus(airQuality.aqi)})</span>
             </div>
@@ -439,7 +441,7 @@ export default function DevicesClient() {
               className="w-full flex justify-between items-center px-6 py-8 text-left text-xl font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
               onClick={handleControlPanelToggle}
             >
-              <span>Control Panel</span>
+              <span>แผงควบคุม</span>
               <div className={`transform transition-transform duration-200 ${controlPanelOpen ? "rotate-180" : ""}`}>
                 <ChevronDown />
               </div>
@@ -534,19 +536,19 @@ export default function DevicesClient() {
                         className={`w-4 h-4 ${device.status === "on" ? "text-green-600" : "text-gray-400"
                           }`}
                       />
-                      <span>Status: {device.status === "on" ? "On" : "Off"}</span>
+                      <span>สถานะ : {device.status === "on" ? "On" : "Off"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Droplets className="w-4 h-4" />
-                      <span>Filter: {device.filterLife}%</span>
+                      <span>ฟิลเตอร์ : {device.filterLife}%</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Settings className="w-4 h-4" />
-                      <span>Mode: {device.mode}</span>
+                      <span>โหมด : {device.mode}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Fan className="w-4 h-4" />
-                      <span>Fan: {device.fanLevel}</span>
+                      <span>ความแรงพัดลม : {device.fanLevel}</span>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-100">

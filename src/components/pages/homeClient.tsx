@@ -11,6 +11,7 @@ import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
+import Information from "../sub-component/Information";
 
 
 
@@ -290,6 +291,7 @@ export default function HomeClient() {
 
   return (
     <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
+      <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">
@@ -310,7 +312,7 @@ export default function HomeClient() {
           </div>
           <p className="text-lg mb-4">μg/m³</p>
           <Badge className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}>
-            Temp {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5 / 9).toFixed(2) : 0} °C
+            อุณภูมิ {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5 / 9).toFixed(2) : 0} °C
           </Badge>
         </section>
 
@@ -319,7 +321,7 @@ export default function HomeClient() {
         ) : (
           <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
             <h2 className="text-2xl font-bold text-white mb-6">
-              Devices
+              เครื่องฝอกอากาศ
             </h2>
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               {devices.map((device) => (

@@ -24,6 +24,7 @@ import {
   get24h30minTemp,
 } from "@/lib/mockData"
 import { getPM25Color, getPM25GradientClassHex, getTempColor } from "@/lib/bgColor"
+import Information from "../sub-component/Information";
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
@@ -161,6 +162,7 @@ export default function MyLineChart() {
     <div
       className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)}`}
     >
+      <Information />
       <div className="max-w-7xl mx-auto space-y-8 pb-15">
         <div className="pt-3">
           <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>

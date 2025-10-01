@@ -36,7 +36,7 @@ export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, d
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={onClose} className="text-blue-500">
-              ← Devices
+              ← อุปกรณ์
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -111,7 +111,7 @@ export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, d
           <Card>
             <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500">FILTER LIFETIME</h3>
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500">อายุฟิลเตอร์กรองอากาศ</h3>
                 <span className="text-sm sm:text-base text-gray-500 font-semibold">{device.filterLife}%</span>
               </div>
               <Progress value={device.filterLife} className="h-2 sm:h-3" />
@@ -123,11 +123,11 @@ export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, d
             <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 sm:gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center">
-                  <span className="text-sm sm:text-base text-gray-600">MODE: </span>
+                  <span className="text-sm sm:text-base text-gray-600">โหมด : </span>
                   <span className="text-sm sm:text-base font-semibold uppercase">{device.mode}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center">
-                  <span className="text-sm sm:text-base text-gray-600">FAN SPEED: </span>
+                  <span className="text-sm sm:text-base text-gray-600">ความเร็วพัดลม : </span>
                   <span className="text-sm sm:text-base font-semibold uppercase">{device.percentage}</span>
                 </div>
               </div>
