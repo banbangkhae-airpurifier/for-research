@@ -13,6 +13,8 @@ import {
   Bar,
   Legend,
   BarChart,
+  Cell,
+  LabelList,
 } from "recharts"
 import { fetchSensor, type AirQuality } from "@/lib/sensor"
 import {
@@ -28,7 +30,7 @@ import Information from "../sub-component/Information";
 
 export default function MyLineChart() {
   const [range, setRange] = useState<"1d" | "7d" | "1m">("1d")
-  const [pmView, ] = useState<"1">("1")
+  const [pmView,] = useState<"1">("1")
   const [isMobile, setIsMobile] = useState(false)
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null)
   const [combinedData, setCombinedData] = useState<any[]>([])
@@ -46,6 +48,7 @@ export default function MyLineChart() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
+      console.log("Fetching data for range:", range)
       try {
         let pm25Data: any[] = []
         let tempData: any[] = []
@@ -66,8 +69,9 @@ export default function MyLineChart() {
           pm25_1: item.value === null ? 0 : item.value,
           temp: tempData[idx]?.value === null ? 0 : tempData[idx]?.value,
           humidity: tempData[idx]?.humidity ?? null,
+          fillPM25: getPM25Color(item.value === null ? 0 : item.value),
+          fillTemp: getTempColor(tempData[idx]?.value === null ? 0 : tempData[idx]?.value),
         }))
-
         setCombinedData(combined)
       } catch (err) {
         console.error(err)
@@ -151,14 +155,20 @@ export default function MyLineChart() {
     )
   }
 
-  const latestPM25 = combinedData
-    .filter(item => item.pm25_1 != null)
-    .slice(-1)[0]?.pm25_1 ?? 0
-  const latestTemp = combinedData
-    .filter(item => item.temp != null)
-    .slice(-1)[0]?.temp ?? 0
+const CustomBarLabel = ({ x, y, width, value }: any) => (
+  <text
+    x={x + width / 2}
+    y={y - 6}
+    textAnchor="middle"
+    fontSize={isMobile ? 11 : 11.5}
+    fill="#374151"
+    fontWeight="bold"
+  >
+    {value}
+  </text>
+);
 
-  return (
+return (
     <div
       className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)}`}
     >
@@ -168,215 +178,199 @@ export default function MyLineChart() {
           <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
         </div>
 
-        {/* Chart */}
-        <div className="bg-white rounded-2xl shadow-2xl">
-          <div className="w-full space-y-12 p-10">
-            {/* Range Buttons */}
-            <div className="flex gap-2 mb-4">
-              {["1d", "7d", "1m"].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r as "1d" | "7d" | "1m")}
-                  className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
-                >
-                  {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
-                </button>
-              ))}
-            </div>
-
-            {/* Sensor Buttons */}
-            {/* <div className="flex gap-2 mb-6">
+        {/* Chart Section */}
+        <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-10">
+          {/* Range Buttons */}
+          <div className="flex gap-2 mb-4">
+            {["1d", "7d", "1m"].map((r) => (
               <button
-                onClick={() => setPmView("1")}
-                className={`px-4 py-2 rounded-xl ${pmView === "1" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+                key={r}
+                onClick={() => setRange(r as "1d" | "7d" | "1m")}
+                className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
               >
-                Sensor 1
+                {r === "1d" ? "1 วัน" : r === "7d" ? "7 วัน" : "1 เดือน"}
               </button>
-            </div> */}
+            ))}
+          </div>
 
-            <div className="w-full h-80 mb-12">
-              <div className="mb-6 pt-3">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">PM 2.5</h2>
-                <p className="text-gray-600">ค่าฝุ่น μg/m³</p>
-              </div>
-              {loading ? (
-                <div className="flex items-center justify-center h-80">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  {range === "7d" ? (
-                    <BarChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="time"
-                        angle={isMobile ? -45 : 0}
-                        textAnchor={isMobile ? "end" : "middle"}
-                        height={isMobile ? 60 : 30}
-                        tick={{ fontSize: 12, fill: "#64748b" }}
-                      />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      {pmView === "1" && (
-                        <Bar
-                          dataKey="pm25_1"
-                          fill="url(#gradientPM25)"
-                          name="PM2.5 Sensor"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      )}
-                      <defs>
-                        <linearGradient id="gradientPM25" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor={getPM25Color(latestPM25)} stopOpacity={0.7} />
-                          <stop offset="100%" stopColor={getPM25Color(latestPM25)} stopOpacity={1} />
-                        </linearGradient>
-                      </defs>
-                    </BarChart>
-                  ) : (
-                    <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="time"
-                        angle={isMobile ? -45 : 0}
-                        textAnchor={isMobile ? "end" : "middle"}
-                        height={isMobile ? 60 : 30}
-                        tick={{ fontSize: 12, fill: "#64748b" }}
-                      />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      {pmView === "1" && (
-                        <Line
-                          type="monotone"
-                          dataKey="pm25_1"
-                          stroke="url(#gradientPM25)"
-                          strokeWidth={3}
-                          dot={<CustomDot />}
-                          activeDot={<CustomDot />}
-                          name="PM2.5 Sensor"
-                          connectNulls={true} // Add this to connect across null values
-                        />
-                      )}
-                      <defs>
-                        <linearGradient id="gradientPM25" x1="0" y1="0" x2="1" y2="0">
-                          {combinedData
-                            .map((item, index) => ({
-                              value: item.pm25_1,
-                              index,
-                            }))
-                            .filter(item => item.value !== null && item.value !== undefined)
-                            .map((item, i, filtered) => (
-                              <stop
-                                key={i}
-                                offset={`${(i / (filtered.length - 1)) * 100}%`}
-                                stopColor={getPM25Color(item.value)}
-                                stopOpacity={0.8}
-                              />
-                            ))}
-                        </linearGradient>
-                        <linearGradient id="gradient2" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.6} />
-                        </linearGradient>
-                        <linearGradient id="gradientAvg" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.8} />
-                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.6} />
-                        </linearGradient>
-                      </defs>
-                    </LineChart>
-                  )}
-                </ResponsiveContainer>
-              )}
+          {/* PM2.5 Chart */}
+          <div className="w-full h-80 mb-24">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">PM 2.5 (μg/m³)</h2>
+              {/* <p className="text-gray-600">ค่าฝุ่น μg/m³</p> */}
             </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-80">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                {range === "7d" ? (
+                  <BarChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="time"
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : 30}
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                    />
+                    <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    {pmView === "1" && (
+                      <Bar
+                        dataKey="pm25_1"
+                        name="PM2.5 Sensor"
+                        radius={[4, 4, 0, 0]}
+                        fill="#10b981"
+                      >
+                        {combinedData.map((entry, index) => (
+                          <Cell key={`cell-pm25-${index}`} fill={entry.fillPM25} />
+                        ))}
+                          <LabelList dataKey="pm25_1" position="top" content={CustomBarLabel} />
+                      </Bar>
+                    )}
+                  </BarChart>
+                ) : (
+                  <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="time"
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : 30}
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                    />
+                    <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    {pmView === "1" && (
+                      <Line
+                        type="monotone"
+                        dataKey="pm25_1"
+                        stroke="url(#gradientPM25)"
+                        strokeWidth={3}
+                        dot={<CustomDot />}
+                        activeDot={<CustomDot />}
+                        name="PM2.5 Sensor"
+                        connectNulls={true}
+                      />
+                    )}
+                    <defs>
+                      <linearGradient id="gradientPM25" x1="0" y1="0" x2="1" y2="0">
+                        {combinedData
+                          .map((item, index) => ({
+                            value: item.pm25_1,
+                            index,
+                          }))
+                          .filter(item => item.value !== null && item.value !== undefined)
+                          .map((item, i, filtered) => (
+                            <stop
+                              key={i}
+                              offset={`${(i / (filtered.length - 1)) * 100}%`}
+                              stopColor={getPM25Color(item.value)}
+                              stopOpacity={0.8}
+                            />
+                          ))}
+                      </linearGradient>
+                    </defs>
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Temperature Chart */}
-          <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl p-4">
-            <div className="mb-6 px-5 pt-3">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Temperature</h2>
-              <p className="text-gray-600">อุณหภูมิอากาศ (°C)</p>
+          <div className="w-full h-80 mb-24">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Temperature (°C)</h2>
+              {/* <p className="text-gray-600">อุณหภูมิอากาศ </p> */}
             </div>
-
-            <div className="w-full h-80">
-              {loading ? (
-                <div className="flex items-center justify-center h-80">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  {range === "7d" ? (
-                    <BarChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="time"
-                        angle={isMobile ? -45 : 0}
-                        textAnchor={isMobile ? "end" : "middle"}
-                        height={isMobile ? 60 : 30}
-                        tick={{ fontSize: 12, fill: "#64748b" }}
-                      />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar dataKey="temp" fill="url(#gradientTemp)" name="Temperature" radius={[4, 4, 0, 0]} />
-                      <defs>
-                        <linearGradient id="gradientTemp" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor={getTempColor(latestTemp)} stopOpacity={0.7} />
-                          <stop offset="100%" stopColor={getTempColor(latestTemp)} stopOpacity={1} />
-                        </linearGradient>
-                      </defs>
-                    </BarChart>
-                  ) : (
-                    <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="time" tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="temp"
-                        stroke="url(#gradientTemp)"
-                        strokeWidth={3}
-                        dot={<CustomDotTemp />}
-                        activeDot={<CustomDotTemp/>}
-                        name="Temperature"
-                      />
-                      <defs>
-                        <linearGradient id="gradientTemp" x1="0" y1="0" x2="1" y2="0">
-                          {combinedData
-                            .map((item, index) => ({
-                              value: item.temp,
-                              index,
-                            }))
-                            .filter(item => item.value !== null && item.value !== undefined)
-                            .map((item, i, filtered) => (
-                              <stop
-                                key={i}
-                                offset={`${(i / (filtered.length - 1)) * 100}%`}
-                                stopColor={getTempColor(item.value)}
-                                stopOpacity={0.8}
-                              />
-                            ))}
-                        </linearGradient>
-                      </defs>
-                    </LineChart>
-                    
-                    
-                  )}
-                  
-                </ResponsiveContainer>
-              )}
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-80">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                {range === "7d" ? (
+                  <BarChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="time"
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : 30}
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                    />
+                    <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar
+                      dataKey="temp"
+                      name="Temperature"
+                      radius={[4, 4, 0, 0]}
+                      fill="#3b82f6"
+                    >
+                      {combinedData.map((entry, index) => (
+                        <Cell key={`cell-temp-${index}`} fill={entry.fillTemp} />
+                      ))}
+                          <LabelList dataKey="temp" position="top" content={CustomBarLabel} />
+                    </Bar>
+                  </BarChart>
+                ) : (
+                  <LineChart data={combinedData} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="time"
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 60 : 30}
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                    />
+                    <YAxis tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="temp"
+                      stroke="url(#gradientTemp)"
+                      strokeWidth={3}
+                      dot={<CustomDotTemp />}
+                      activeDot={<CustomDotTemp />}
+                      name="Temperature"
+                    />
+                    <defs>
+                      <linearGradient id="gradientTemp" x1="0" y1="0" x2="1" y2="0">
+                        {combinedData
+                          .map((item, index) => ({
+                            value: item.temp,
+                            index,
+                          }))
+                          .filter(item => item.value !== null && item.value !== undefined)
+                          .map((item, i, filtered) => (
+                            <stop
+                              key={i}
+                              offset={`${(i / (filtered.length - 1)) * 100}%`}
+                              stopColor={getTempColor(item.value)}
+                              stopOpacity={0.8}
+                            />
+                          ))}
+                      </linearGradient>
+                    </defs>
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        <div className="bg-white backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+        {/* Data Table */}
+        <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-10">
+          <div className="mb-6">
             <h3 className="text-xl font-bold text-gray-900">ข้อมูลรายละเอียด</h3>
             <p className="text-gray-600 mt-1">ตารางแสดงค่าข้อมูลทั้งหมด</p>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50/80">
