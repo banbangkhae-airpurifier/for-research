@@ -321,7 +321,7 @@ export default function HomeClient() {
         ) : (
           <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4">
             <h2 className="text-2xl font-bold text-white mb-6">
-              เครื่องฝอกอากาศ
+              เครื่องฟอกอากาศ
             </h2>
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               {devices.map((device) => (

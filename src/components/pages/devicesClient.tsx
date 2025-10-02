@@ -421,7 +421,7 @@ export default function DevicesClient() {
       <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">เครื่องฝอกอากาศ</h1>
+          <h1 className="text-4xl font-bold mb-2">เครื่องฟอกอากาศ</h1>
           <div className="flex items-center gap-4 text-white/90">
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <span className="text-sm">AQI ปัจจุบัน: </span>
