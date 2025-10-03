@@ -67,7 +67,7 @@ export class fetchSensor {
     async getSensor(sensorID: string, signal?: AbortSignal): Promise<number | undefined> {
         try {
         const { state } = await this.getState(sensorID,signal);
-        const filterValue = parseInt(state);
+        const filterValue = parseFloat(state);
         if (!isNaN(filterValue)) {
             return filterValue;
         }

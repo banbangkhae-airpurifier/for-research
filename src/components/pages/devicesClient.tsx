@@ -8,6 +8,7 @@ import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 import Information from "../sub-component/Information";
+import { aqiToPm25 } from "@/lib/utils";
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
@@ -149,7 +150,7 @@ export default function DevicesClient() {
     };
 
     setGlobalMode(devices[0]?.mode || "auto");
-    setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
+    // setGlobalFanLevel((devices[0]?.fanLevel as FanLevel) || "off");
 
     if (devices == devicesData || !devices) {
       fetchData(controller.signal);
@@ -205,20 +206,21 @@ export default function DevicesClient() {
   const handleGlobalModeChange = async (mode: Device["mode"]) => {
     setGlobalMode(mode);
 
-    if (mode === "manual") {
-      await Promise.all(
-        devices.map(async (device) => {
-          try {
-            await manager.setFanLevel(device, "low");
-          } catch (err) {
-            if (err instanceof DOMException && err.name === 'AbortError') {
-              return;
-            }
-            console.error(`❌ Error setting fan level for device ${device.model}:`, err);
-          }
-        })
-      );
-    }
+
+    // if (mode === "manual") {
+    //   await Promise.all(
+    //     devices.map(async (device) => {
+    //       try {
+    //         await manager.setFanLevel(device, "low");
+    //       } catch (err) {
+    //         if (err instanceof DOMException && err.name === 'AbortError') {
+    //           return;
+    //         }
+    //         console.error(`❌ Error setting fan level for device ${device.model}:`, err);
+    //       }
+    //     })
+    //   );
+    // }
 
     const newDevices = devices.map((device) => ({
       ...device,
@@ -237,6 +239,7 @@ export default function DevicesClient() {
     }
 
     const switchToAutoMode = mode === "auto";
+    setGlobalFanLevel("hi")
     try {
       await manager.setAutoMode(switchToAutoMode);
       if (refreshing) { console.log("Refresh IN Queue"); return; }
@@ -285,6 +288,7 @@ export default function DevicesClient() {
         }
       }),
     );
+    console.log("Set Fan Level to", level)
 
     try {
       if (refreshing) { console.log("Refresh In Queue"); return };
@@ -417,7 +421,7 @@ export default function DevicesClient() {
 
   // ========== MAIN RENDER ==========
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.pm25)}`}>
       <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">
@@ -553,16 +557,16 @@ export default function DevicesClient() {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Room AQI:</span>
+                      <span className="text-gray-500">Room PM2.5:</span>
                       <span
-                        className={`font-semibold ${device.aqiValue < 51
+                        className={`font-semibold ${aqiToPm25(device.aqiValue) <= 9 
                           ? "text-green-600"
-                          : device.aqiValue < 101
+                          : aqiToPm25(device.aqiValue) <= 55.4
                             ? "text-yellow-600"
                             : "text-red-600"
                           }`}
                       >
-                        {device.aqiValue}
+                        {aqiToPm25(device.aqiValue)}
                       </span>
                     </div>
                   </div>

@@ -170,7 +170,7 @@ const CustomBarLabel = ({ x, y, width, value }: any) => (
 
 return (
     <div
-      className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.aqi)}`}
+      className={`min-h-screen p-4 md:p-8 ${loading ? "bg-gray-200" : getPM25GradientClassHex(airQuality?.pm25)}`}
     >
       <Information />
       <div className="max-w-7xl mx-auto space-y-8 pb-15">

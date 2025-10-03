@@ -96,6 +96,7 @@ export class DeviceManager {
 
         if (device.percentage === 0 || device.status === 'off') {
           device.fanLevel = 'off';
+          device.percentage = 0
         } else if (device.percentage < 34) {
           device.fanLevel = 'low';
         } else if (device.percentage < 67) {
@@ -227,8 +228,6 @@ export class DeviceManager {
       const automationID = enabled ? 'auto_on_all_devices' : 'auto_off_all_devices';
       await this.triggerAutomation(automationID, signal);
 
-      // Refresh devices after 5 seconds
-      setTimeout(() => this.refreshAllDevices(), 5000);
     }, signal);
   }
 

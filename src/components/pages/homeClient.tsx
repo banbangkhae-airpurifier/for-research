@@ -290,7 +290,7 @@ export default function HomeClient() {
   // ========== MAIN RENDER ==========
 
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.aqi)}`}>
+    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.pm25)}`}>
       <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">

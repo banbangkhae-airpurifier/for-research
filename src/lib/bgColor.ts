@@ -1,7 +1,7 @@
 export const getPM25GradientClassHex = (aqi: number | null | undefined): string => {
   if (aqi === null || aqi === undefined) return "bg-gradient-to-br from-gray-200 to-gray-400"
-  if (aqi < 50) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
-  if (aqi < 150) return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
+  if (aqi <= 9) return "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]"
+  if (aqi <= 55.4) return "bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]"
   return "bg-gradient-to-br from-[#F87171] to-[#EC4899]"
 }
 
@@ -32,3 +32,13 @@ export const getAQIStatus = (aqi: number | null): string => {
     if (value <= 34) return '#264AFF'; // Blue (Moderate)
     return '#A826FF'; // Purple (Unhealthy)
   }
+
+export const getFilterLifeColor = (filterLife: number) => {
+  if (filterLife <= 20) {
+    return "bg-red-500"; // Low filter life: Red
+  } else if (filterLife <= 50) {
+    return "bg-yellow-500"; // Medium filter life: Yellow
+  } else {
+    return "bg-green-500"; // High filter life: Green
+  }
+};

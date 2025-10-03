@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Progress } from "@/components/ui/progress"
 import { Power } from "lucide-react"
 import { Device } from "@/lib/device"
+import { aqiToPm25 } from "@/lib/utils"
 
 interface DeviceDetailProps {
   device: Device | null
@@ -83,10 +84,10 @@ export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, d
                       cy="64"
                       r="56"
                       fill="none"
-                      stroke={getPM25GaugeColor(device.aqiValue)}
+                      stroke={getPM25GaugeColor(aqiToPm25(device.aqiValue))}
                       strokeWidth="16"
                       strokeDasharray={2 * Math.PI * 56}
-                      strokeDashoffset={(1 - Math.max(0, Math.min(1, device.aqiValue / 300))) * 2 * Math.PI * 56}
+                      strokeDashoffset={(1 - Math.max(0, Math.min(1, aqiToPm25(device.aqiValue) / 300))) * 2 * Math.PI * 56}
                       style={{ transition: "stroke-dashoffset 0.5s" }}
                       strokeLinecap="round"
                       transform="rotate(-90 64 64)"
@@ -95,14 +96,16 @@ export default function DeviceDetail({ device, isOpen, onClose, onTogglePower, d
 
                   {/* AQI Value */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">{device.aqiValue}</span>
-                    <span className="text-xs sm:text-sm text-gray-500">AQI</span>
+                    <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">{aqiToPm25(device.aqiValue)}</span>
+                    <span className="text-xs sm:text-sm text-gray-500">PM2.5</span>
                   </div>
                 </div>
               </div>
 
               <div className="text-center">
-                <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600">AQI: {device.aqiValue}</span>
+                <span className="text-xl sm:text-1xl md:text-2xl font-light text-gray-600">PM2.5 : </span>
+                <span className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600">{ aqiToPm25(device.aqiValue) }</span>
+
               </div>
             </CardContent>
           </Card>
