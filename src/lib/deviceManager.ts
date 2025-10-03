@@ -109,7 +109,6 @@ export class DeviceManager {
         device.status = 'off';
       }
 
-      device.status = device.percentage > 0 ? 'on' : 'off';
 
       if (autoModeState.state) {
         device.mode = autoModeState.state === 'on' ? 'auto' : 'manual';
