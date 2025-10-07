@@ -100,7 +100,3 @@ export class fetchSensor {
     }
     }
 }
-
-
-
-

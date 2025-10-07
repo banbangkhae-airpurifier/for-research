@@ -188,7 +188,7 @@ return (
                 onClick={() => setRange(r as "1d" | "7d" | "1m")}
                 className={`px-4 py-2 rounded-xl ${range === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
               >
-                {r === "1d" ? "Times" : r === "7d" ? "Days" : "Dates"}
+                {r === "1d" ? "เวลา" : r === "7d" ? "วัน" : "วันที่"}
               </button>
             ))}
           </div>

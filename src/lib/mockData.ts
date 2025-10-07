@@ -7,17 +7,49 @@ async function getDataFromBin(binId: string, valueKey: string, timeKey: string =
     const res = await fetch(url, { headers: { "X-Master-Key": API_KEY } });
     if (!res.ok) throw new Error(`Response status: ${res.status}`);
     const json = await res.json();
-    return json.record.map((item: any) => ({
-      time: item[timeKey],
-      value: item[valueKey] != null
-        ? Number(item[valueKey].toFixed(2))
-        : null
-    }));
-  } catch (err) {
-    console.error(err);
+
+    // ตารางแปลชื่อวันเป็นไทย
+    const dayMap: Record<string, string> = {
+      Monday: "จันทร์",
+      Tuesday: "อังคาร",
+      Wednesday: "พุธ",
+      Thursday: "พฤหัสบดี",
+      Friday: "ศุกร์",
+      Saturday: "เสาร์",
+      Sunday: "อาทิตย์",
+    };
+
+    return json.record.map((item: any) => {
+      const rawTime = item[timeKey];
+      let formattedTime = rawTime;
+
+      // ถ้าเป็นวันที่ในรูปแบบ YYYY-MM-DD → แปลงเป็น D MMM YYYY
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rawTime)) {
+        const date = new Date(rawTime);
+        formattedTime = date.toLocaleDateString("th-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+      }
+      // ถ้าเป็นชื่อวันในภาษาอังกฤษ → แปลงเป็นไทย
+      else if (dayMap[rawTime]) {
+        formattedTime = dayMap[rawTime];
+      }
+
+      return {
+        time: formattedTime,
+        value: item[valueKey] != null
+          ? Number(item[valueKey].toFixed(2))
+          : null,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching data from bin:", error);
     return [];
   }
 }
+
 
 // ==================== PM2.5 Sensor ====================
 // PM2.5 by date (30 days)
