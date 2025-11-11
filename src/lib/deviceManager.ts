@@ -30,7 +30,6 @@ export class DeviceManager {
   private STORAGE_KEY = 'device_manager_state';
 
 
-
   // Toggle device power
   async toggleDevicePower(device: Device): Promise<void> {
     const domain = 'fan';
