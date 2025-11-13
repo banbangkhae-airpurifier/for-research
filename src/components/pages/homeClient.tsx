@@ -13,7 +13,19 @@ import { getPM25GradientClassHex, getAQIBadgeColor } from "@/lib/bgColor";
 import { fetchSensor } from "@/lib/sensor";
 import Information from "../sub-component/Information";
 
+// ========== COOKIE HELPERS ==========
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
@@ -37,9 +49,18 @@ export default function HomeClient() {
       checkAndClearLocalStorage();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored) as Device[];
+        const storedDevices = JSON.parse(stored) as Device[];
+        // Apply names from cookies
+        return storedDevices.map(device => {
+          const cookieName = getCookie(`device_name_${device.id}`);
+          return cookieName ? { ...device, model: cookieName } : device;
+        });
       }
-      return devicesData;
+      // Apply names from cookies to default data
+      return devicesData.map(device => {
+        const cookieName = getCookie(`device_name_${device.id}`);
+        return cookieName ? { ...device, model: cookieName } : device;
+      });
     } catch (error) {
       console.error('❌ Failed to load devices from localStorage:', error);
       return [];
@@ -166,13 +187,8 @@ export default function HomeClient() {
       }
     };
 
-    if (devices == devicesData || !devices) {
-      fetchData(controller.signal);
-    } else {
-      manager.setDevices(devices);
-    }
-
-    const fetchInterval = setInterval(() => {
+    fetchData(controller.signal); // Always fetch on initial load
+    const fetchInterval = setInterval(() => { // Subsequent fetches
       if (!refreshing) {
         console.log('🔄 Fetching devices every 15 seconds');
         controller = new AbortController();

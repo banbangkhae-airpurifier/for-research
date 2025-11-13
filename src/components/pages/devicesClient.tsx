@@ -1,14 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Fan, Power, Settings, Droplets, Wind, ChevronDown } from "lucide-react";
+import { useState, useEffect} from "react";
+import { Fan, Power, Settings, Droplets, Wind, ChevronDown, Edit } from "lucide-react";
 import DeviceDetail from "@/components/sub-component/DeviceDetail";
 import { Device, devicesData } from "@/lib/device";
 import DeviceManager, { AirQuality, FanLevel } from "@/lib/deviceManager";
 import { getPM25GradientClassHex, getAQIStatus } from "@/lib/bgColor";
-import { fetchSensor } from "@/lib/sensor";
+import { fetchSensor, PoleStatus } from "@/lib/sensor";
 import Information from "../sub-component/Information";
 import { aqiToPm25 } from "@/lib/utils";
+
+// ========== COOKIE HELPERS ==========
+function setCookie(name: string, value: string, days: number) {
+  if (typeof document === 'undefined') return;
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
 
 export default function DevicesClient() {
   // ========== STATE MANAGEMENT ==========
@@ -22,6 +46,7 @@ export default function DevicesClient() {
   const [refreshing, setRefreshing] = useState(false);
   const [deviceRefreshing, setDeviceRefreshing] = useState(false);
   const [firsTimeRefresh, setFirstTimeRefresh] = useState(false);
+  const [poles, setPoles] = useState<PoleStatus[]>([]);
 
   // Function to store current timestamp in localStorage
   function storeTimestamp(key: string = 'lastAccessTime'): void {
@@ -62,9 +87,18 @@ export default function DevicesClient() {
       checkAndClearLocalStorage();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored) as Device[];
+        const storedDevices = JSON.parse(stored) as Device[];
+        // Apply names and locations from cookies
+        return storedDevices.map(device => {
+          const cookieLocation = getCookie(`device_location_${device.id}`);
+          return cookieLocation ? { ...device, location: cookieLocation } : device;
+        });
       }
-      return devicesData;
+      // Apply locations from cookies to default data
+      return devicesData.map(device => {
+        const cookieLocation = getCookie(`device_location_${device.id}`);
+        return cookieLocation ? { ...device, location: cookieLocation } : device;
+      });
     } catch (error) {
       console.error('❌ Failed to load devices from localStorage:', error);
       return [];
@@ -78,6 +112,7 @@ export default function DevicesClient() {
   const [devicePower, setDevicePower] = useState<boolean>(
     selectedDevice ? selectedDevice.status === "on" : false
   );
+  const [editingDeviceId, setEditingDeviceId] = useState<number | null>(null);
 
   // Save devices to localStorage when they change
   useEffect(() => {
@@ -99,6 +134,12 @@ export default function DevicesClient() {
   useEffect(() => {
     const controller = new AbortController();
     const sensor = new fetchSensor();
+
+    const fetchPoles = async () => {
+      const poleStatus = await sensor.getPoleStatus();
+      setPoles(poleStatus);
+    };
+
     const fetchData = async (loading: boolean) => {
       try {
         setLoading(loading);
@@ -115,9 +156,11 @@ export default function DevicesClient() {
       }
     };
 
+    fetchPoles();
     fetchData(true);
     const fetchInterval = setInterval(() => {
       fetchData(false);
+      fetchPoles();
     }, 15 * 1000);
 
     return () => {
@@ -175,6 +218,21 @@ export default function DevicesClient() {
   }, []);
 
   // ========== EVENT HANDLERS ==========
+
+  const handleLocationChange = (deviceId: number, newLocation: string) => {
+    setDevices(prevDevices =>
+      prevDevices.map(d => (d.id === deviceId ? { ...d, location: newLocation } : d))
+    );
+    setCookie(`device_location_${deviceId}`, newLocation, 365); // Store for 1 year
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      setEditingDeviceId(null);
+      // The onBlur event will also fire, which is fine.
+    }
+  };
+
 
   const handleTogglePower = async () => {
     if (!selectedDevice) return;
@@ -505,9 +563,43 @@ export default function DevicesClient() {
           </div>
         </section>
 
+        <section className="bg-white/20 backdrop-blur-sm rounded-3xl p-6 -mx-4 mb-4">
+          <h2 className="text-2xl font-bold text-white mb-6">
+            Poles (2)
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            {poles.map((pole) => (
+              <div
+                key={pole.poleID}
+                className="bg-white rounded-xl p-4 shadow cursor-pointer hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-3 mb-1">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      pole.isOnline ? "bg-green-200" : "bg-gray-200"
+                      }`}
+                  >
+                    <Wind
+                      className={`w-6 h-6 ${
+                        pole.isOnline ? "text-green-600" : "text-gray-600"
+                        }`}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">{pole.poleID.replace('_', ' ').replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())}</h3>
+                    <p className="text-gray-600 text-sm ">{pole.isOnline ? 'กำลังทำงาน' : 'ไม่ทำงาน'}</p>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+        </section>
+
         {deviceRefreshing ? (
           <DevicesSkeletonLoader />
         ) : (
+
           <section className="bg-white/20 backdrop-blur-sm rounded-t-3xl p-6 -mx-4">
             <h2 className="text-2xl font-bold text-white mb-6">
               Devices ({devices.length})
@@ -531,7 +623,24 @@ export default function DevicesClient() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">{device.model}</h3>
-                      <p className="text-gray-600">{device.location}</p>
+                      {editingDeviceId === device.id ? (
+                        <input
+                          type="text"
+                          value={device.location}
+                          onChange={(e) => handleLocationChange(device.id, e.target.value)}
+                          onBlur={() => setEditingDeviceId(null)}
+                          onKeyDown={handleKeyDown}
+                          className="text-gray-600 bg-transparent border-b-2 border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <p>{device.location}</p>
+                          <button onClick={(e) => { e.stopPropagation(); setEditingDeviceId(device.id); }} className="text-gray-500 hover:text-blue-500 p-1 rounded-full" aria-label="Edit device location">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
