@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const API_KEY = "$2a$10$COVfkQUkHHOSQocqbdFwTuO8/aXZe7lQYCUltOrovXvKtbhXX9h5m";
+const API_KEY = process.env.JSONBIN_API_KEY!;
 
 async function getDataFromBin(binId: string, valueKey: string, timeKey: string = "ReportDate") {
   const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;

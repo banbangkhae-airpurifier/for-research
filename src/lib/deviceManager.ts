@@ -22,8 +22,8 @@ interface DeviceAttributes {
 export type FanLevel = "off" | "low" | "mid" | "high" | "turbo" | "hi";
 
 export class DeviceManager {
-  private habaseURL: string = 'https://ob2s2wfi0mp5smcvcbz8rydvzt2hlvwk.ui.nabu.casa';
-  private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
+  private habaseURL: string = process.env.HABASEURL!;
+  private hatoken: string = process.env.HATOKEN!;
   airQuality: AirQuality | null = null;
   private devices: Device[] = [];
   private refreshTimer: Subscription | null = null;
@@ -133,12 +133,12 @@ export class DeviceManager {
       ]).then(() => {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.devices));
       })
-      .catch(error => {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return;
-        }
-        console.error(`❌ Failed to refresh device ${device.model}:`, error);
-      })
+        .catch(error => {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            return;
+          }
+          console.error(`❌ Failed to refresh device ${device.model}:`, error);
+        })
     );
     await Promise.all(promises);
   }
