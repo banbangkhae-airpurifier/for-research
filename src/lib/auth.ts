@@ -8,7 +8,6 @@ const hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNm
 // Function to fetch allowed emails from Home Assistant
 const getEmails = async (signal?: AbortSignal): Promise<string[] | undefined> => {
   const url = `${habaseURL}/api/states/input_text.allowed_emails`;
-  const url = `${habaseURL}/api/states/input_text.allowed_emails`;
 
   try {
     const response = await fetch(url, {
@@ -16,38 +15,15 @@ const getEmails = async (signal?: AbortSignal): Promise<string[] | undefined> =>
       headers: { 'Authorization': `Bearer ${hatoken}` }, // Use hatoken directly
       signal
     });
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${hatoken}` }, // Use hatoken directly
-        signal
-      });
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const json = await response.json();
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const json = await response.json();
 
-      if (!json.state) {
-        console.error(":x: No state found for input_text.allowed_emails");
-        return undefined;
-      }
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const json = await response.json();
-
-      if (!json.state) {
-        console.error(":x: No state found for input_text.allowed_emails");
-        return undefined;
-      }
-
-      // Parse the JSON string into an array and trim each email
-      const emailArray = JSON.parse(json.state) as string[];
-      return emailArray.map(email => email.trim());
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return undefined;
-      }
-      console.error(`❌ Can't fetch emails:`, error);
+    if (!json.state) {
+      console.error(":x: No state found for input_text.allowed_emails");
       return undefined;
     }
+
     // Parse the JSON string into an array and trim each email
     const emailArray = JSON.parse(json.state) as string[];
     return emailArray.map(email => email.trim());
