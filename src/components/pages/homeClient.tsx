@@ -16,12 +16,12 @@ import Information from "../sub-component/Information";
 // ========== COOKIE HELPERS ==========
 
 function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   const nameEQ = name + "=";
-  const ca = document.cookie.split(';');
+  const ca = document.cookie.split(";");
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
   }
   return null;
@@ -29,7 +29,7 @@ function getCookie(name: string): string | null {
 
 export default function HomeClient() {
   // ========== STATE MANAGEMENT ==========
-  const STORAGE_KEY = 'device_manager_state';
+  const STORAGE_KEY = "device_manager_state";
 
   // Air Quality State
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
@@ -40,7 +40,7 @@ export default function HomeClient() {
   const [firsTimeRefresh, setFirstTimeRefresh] = useState(false);
 
   // Device State
-  const isBrowser = typeof window !== 'undefined';
+  const isBrowser = typeof window !== "undefined";
   const [devices, setDevices] = useState<Device[]>(() => {
     if (!isBrowser) {
       return [];
@@ -51,46 +51,46 @@ export default function HomeClient() {
       if (stored) {
         const storedDevices = JSON.parse(stored) as Device[];
         // Apply names from cookies
-        return storedDevices.map(device => {
+        return storedDevices.map((device) => {
           const cookieName = getCookie(`device_name_${device.id}`);
           return cookieName ? { ...device, model: cookieName } : device;
         });
       }
       // Apply names from cookies to default data
-      return devicesData.map(device => {
+      return devicesData.map((device) => {
         const cookieName = getCookie(`device_name_${device.id}`);
         return cookieName ? { ...device, model: cookieName } : device;
       });
     } catch (error) {
-      console.error('❌ Failed to load devices from localStorage:', error);
+      console.error("❌ Failed to load devices from localStorage:", error);
       return [];
     }
   });
 
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [devicePower, setDevicePower] = useState<boolean>(selectedDevice ? (selectedDevice.status === "on") : false);
+  const [devicePower, setDevicePower] = useState<boolean>(
+    selectedDevice ? selectedDevice.status === "on" : false,
+  );
 
   // UI State
   const [currentTime, setCurrentTime] = useState(
-    moment().format("ddd D MMM HH:mm:ss")
+    moment().format("ddd D MMM HH:mm:ss"),
   );
 
   // Device Manager Instance
   const manager = useState(() => new DeviceManager())[0];
 
   // ========== COMPUTED VALUES ==========
-  const isOn = selectedDevice
-    ? (selectedDevice.status === "on")
-    : false;
+  const isOn = selectedDevice ? selectedDevice.status === "on" : false;
 
   // Function to store current timestamp in localStorage
-  function storeTimestamp(key: string = 'lastAccessTime'): void {
+  function storeTimestamp(key: string = "lastAccessTime"): void {
     const currentTime = new Date().toISOString();
     localStorage.setItem(key, currentTime);
   }
 
   // Function to check time difference and remove other localStorage keys if > 10 minutes
-  function checkAndClearLocalStorage(timeKey: string = 'lastAccessTime'): void {
+  function checkAndClearLocalStorage(timeKey: string = "lastAccessTime"): void {
     const storedTime = localStorage.getItem(timeKey);
 
     if (storedTime) {
@@ -98,13 +98,14 @@ export default function HomeClient() {
       const currentDate = new Date();
 
       // Calculate time difference in minutes
-      const timeDifference = (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
+      const timeDifference =
+        (currentDate.getTime() - storedDate.getTime()) / (1000 * 60);
 
       // If difference exceeds 10 minutes, remove all localStorage keys except timeKey
       if (timeDifference > 10) {
         Object.keys(localStorage)
-          .filter(key => key !== timeKey)
-          .forEach(key => localStorage.removeItem(key));
+          .filter((key) => key !== timeKey)
+          .forEach((key) => localStorage.removeItem(key));
         setFirstTimeRefresh(true);
       }
     } else {
@@ -122,9 +123,9 @@ export default function HomeClient() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
         manager.setDevices(devices);
       } catch (error) {
-        console.error('❌ Failed to save devices to localStorage:', error);
+        console.error("❌ Failed to save devices to localStorage:", error);
       }
-    }
+    };
 
     saveDevices();
   }, [devices]);
@@ -173,13 +174,15 @@ export default function HomeClient() {
 
     const fetchData = async (signal: AbortSignal) => {
       try {
-        if (firsTimeRefresh) { setDeviceRefreshing(true) };
+        if (firsTimeRefresh) {
+          setDeviceRefreshing(true);
+        }
         await manager.refreshAllDevices(signal);
         const updatedDevices = manager.getDevices();
         setDevices([...updatedDevices]);
         setDeviceRefreshing(false);
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
+        if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
         setError("Failed to fetch data");
@@ -188,9 +191,10 @@ export default function HomeClient() {
     };
 
     fetchData(controller.signal); // Always fetch on initial load
-    const fetchInterval = setInterval(() => { // Subsequent fetches
+    const fetchInterval = setInterval(() => {
+      // Subsequent fetches
       if (!refreshing) {
-        console.log('🔄 Fetching devices every 15 seconds');
+        console.log("🔄 Fetching devices every 15 seconds");
         controller = new AbortController();
         fetchData(controller.signal);
       }
@@ -213,13 +217,16 @@ export default function HomeClient() {
       prevDevices.map((device) =>
         device.id === selectedDevice.id
           ? { ...device, status: isOn ? "off" : "on" }
-          : device
-      )
+          : device,
+      ),
     );
 
     try {
       await manager.toggleDevicePower(selectedDevice);
-      if (refreshing) { console.log("Refresh IN Queue"); return; }
+      if (refreshing) {
+        console.log("Refresh IN Queue");
+        return;
+      }
       setRefreshing(true);
       // Additional 10-second delay to ensure state consistency
       await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -292,11 +299,7 @@ export default function HomeClient() {
   // ========== CONDITIONAL RENDERING ==========
 
   if (error) {
-    return (
-      <div className="min-h-screen pt-10 px-5 text-red-500">
-        {error}
-      </div>
-    );
+    return <div className="min-h-screen pt-10 px-5 text-red-500">{error}</div>;
   }
 
   if (loading || !airQuality) {
@@ -306,30 +309,37 @@ export default function HomeClient() {
   // ========== MAIN RENDER ==========
 
   return (
-    <div className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.pm25)}`}>
+    <div
+      className={`min-h-screen pt-10 px-5 ${getPM25GradientClassHex(airQuality.pm25)}`}
+    >
       <Information />
       <div className="px-4 pb-20">
         <header className="text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">
-            {airQuality.location}
-          </h1>
-          <p className="text-xl opacity-90 mb-4">
-            {airQuality.city}
-          </p>
-          <p className="text-lg opacity-80">
-            {currentTime}
-          </p>
+          <h1 className="text-4xl font-bold mb-2">{airQuality.location}</h1>
+          <p className="text-xl opacity-90 mb-4">{airQuality.city}</p>
+          <p className="text-lg opacity-80">{currentTime}</p>
         </header>
 
         <section className="text-center text-white mb-8">
           <p className="text-lg mb-4">PM2.5</p>
-          <div className="text-8xl font-bold mb-2">
-            {airQuality.pm25}
-          </div>
+          <div className="text-8xl font-bold mb-2">{airQuality.pm25}</div>
           <p className="text-lg mb-4">μg/m³</p>
-          <Badge className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}>
-            อุณภูมิ {airQuality.temp > 0 ? ((airQuality.temp - 32) * 5 / 9).toFixed(2) : 0} °C
-          </Badge>
+          <section className="flex flex-row gap-2 justify-center">
+            <Badge
+              className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}
+            >
+              อุณภูมิ{" "}
+              {airQuality.temp > 0
+                ? (((airQuality.temp - 32) * 5) / 9).toFixed(2)
+                : 0}{" "}
+              °C
+            </Badge>
+            <Badge
+              className={`${getAQIBadgeColor(airQuality.aqi)} text-lg px-4 py-2`}
+            >
+              AQI {airQuality.aqi}
+            </Badge>
+          </section>
         </section>
 
         {deviceRefreshing ? (
@@ -349,12 +359,18 @@ export default function HomeClient() {
                   <CardContent className="p-3">
                     <div className="flex flex-col text-center items-center gap-3">
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${device.status === "on" ? "bg-green-200" : "bg-gray-200"
-                          }`}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          device.status === "on"
+                            ? "bg-green-200"
+                            : "bg-gray-200"
+                        }`}
                       >
                         <Wind
-                          className={`w-6 h-6 ${device.status === "on" ? "text-green-600" : "text-gray-600"
-                            }`}
+                          className={`w-6 h-6 ${
+                            device.status === "on"
+                              ? "text-green-600"
+                              : "text-gray-600"
+                          }`}
                         />
                       </div>
                       <div>
