@@ -21,8 +21,8 @@ interface SensorAttributes {
 }
 
 export class fetchSensor {
-    private habaseURL: string = 'https://ob2s2wfi0mp5smcvcbz8rydvzt2hlvwk.ui.nabu.casa'; // Replace with actual URL 
-    private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwNDEzNmRkYTA3ODE0ODY4YmIwMWU4NmJlZWY0MDA2MiIsImlhdCI6MTc0OTcwNDQ0NCwiZXhwIjoyMDY1MDY0NDQ0fQ.XshdadBtHNeAv0_L-X69q_lwTPm6fYKSh-zTsvgymvE'; // Replace with actual token
+    private habaseURL: string = 'https://drytqdly7wce63ynhjug4a5a3n99duj3.ui.nabu.casa'; // Replace with actual URL 
+    private hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNjM0NTY5NjY5Y2U0MTFkYmIyMDFiZTcwZDY1NzJhYiIsImlhdCI6MTc3MTE3OTA4MywiZXhwIjoyMDg2NTM5MDgzfQ.PvO-qWy8eBZGneDZh3QqKnleGScE3rUi9E9wbX_WzQ0'; // Replace with actual token
     airQuality: AirQuality | null = null;
     private refreshTimer: Subscription | null = null;
     poleStatus: PoleStatus[] = [
