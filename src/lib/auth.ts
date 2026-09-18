@@ -2,8 +2,8 @@ import GoogleProvider from "next-auth/providers/google";
 import { NextAuthOptions } from "next-auth";
 
 // Define Home Assistant URL and token
-const habaseURL: string = 'https://drytqdly7wce63ynhjug4a5a3n99duj3.ui.nabu.casa'; // Replace with actual URL 
-const hatoken: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNjM0NTY5NjY5Y2U0MTFkYmIyMDFiZTcwZDY1NzJhYiIsImlhdCI6MTc3MTE3OTA4MywiZXhwIjoyMDg2NTM5MDgzfQ.PvO-qWy8eBZGneDZh3QqKnleGScE3rUi9E9wbX_WzQ0'; // Replace with actual token
+const habaseURL: string = process.env.HABASEURL!;
+const hatoken: string = process.env.HATOKEN!;
 
 // Function to fetch allowed emails from Home Assistant
 const getEmails = async (signal?: AbortSignal): Promise<string[] | undefined> => {
